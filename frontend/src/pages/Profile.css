@@ -1,0 +1,284 @@
+.profile-page {
+  min-height: 100vh;
+  background-color: #eaf4ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px 64px;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.profile-page *,
+.profile-page *::before,
+.profile-page *::after {
+  box-sizing: border-box;
+}
+
+.profile-card {
+  width: 100%;
+  max-width: 760px;
+  background-color: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20, 40, 80, 0.06);
+  padding: 28px;
+}
+
+.profile-status {
+  text-align: center;
+  color: #555;
+  font-size: 15px;
+  padding: 24px 0;
+  margin: 0;
+}
+
+.profile-error {
+  color: #d93025;
+}
+
+/* ---------- Khối thông tin đầu (avatar + tên/msv/lớp) ---------- */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-align: left;
+  border: 1px solid #e6ebf2;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  border-radius: 50%;
+  background-color: #eaf1fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-icon {
+  width: 40px;
+  height: 40px;
+  color: #4a90e2;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.profile-info p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: #2d3748;
+  text-align: left;
+}
+
+.profile-label {
+  font-weight: 600;
+  color: #1a202c;
+  margin-right: 4px;
+}
+
+/* ---------- Các field: Mail / Figma / Github / Postman / Báo cáo ---------- */
+
+.profile-field {
+  border: 1px solid #e6ebf2;
+  border-radius: 10px;
+  padding: 12px 20px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.profile-field-label {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #1a202c;
+  margin: 0 0 4px 0;
+  text-align: left;
+}
+
+.profile-field-value {
+  font-size: 13.5px;
+  color: #3f7fe0;
+  margin: 0;
+  text-align: left;
+  word-break: break-all;
+  min-height: 1em; /* giữ chiều cao ổn định khi giá trị đang trống/đang tải */
+}
+
+/* ---------- Input khi ở chế độ chỉnh sửa ---------- */
+
+.profile-input {
+  width: 100%;
+  font-size: 13.5px;
+  color: #1a202c;
+  padding: 6px 10px;
+  border: 1px solid #cfd8e6;
+  border-radius: 6px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.profile-input-inline {
+  width: auto;
+  min-width: 160px;
+  padding: 3px 8px;
+  font-size: 14.5px;
+  display: inline-block;
+}
+
+/* ---------- Nút Chỉnh sửa / Lưu / Hủy ---------- */
+
+.btn-edit {
+  display: block;
+  margin: 4px auto 0;
+  background-color: #d9ecff;
+  color: #1a73e8;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-edit:hover {
+  background-color: #c3e0fb;
+}
+
+.btn-edit:active {
+  transform: scale(0.98);
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.btn-save,
+.btn-cancel {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-save {
+  background-color: #1a73e8;
+  color: #ffffff;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: #1662c4;
+}
+
+.btn-cancel {
+  background-color: #eef1f5;
+  color: #4a5568;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #e1e6ec;
+}
+
+.btn-save:disabled,
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-save:active:not(:disabled),
+.btn-cancel:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ---------- Nút Đăng xuất ---------- */
+
+.logout-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #fdecea;
+  color: #d93025;
+  border: 1px solid #f5b7b1;
+  border-radius: 8px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-logout:hover:not(:disabled) {
+  background-color: #fbd6d2;
+}
+
+.btn-logout:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-logout:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 560px) {
+  .profile-card {
+    padding: 20px;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .profile-field {
+    padding: 10px 16px;
+  }
+}
