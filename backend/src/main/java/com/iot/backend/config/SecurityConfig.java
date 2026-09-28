@@ -46,8 +46,11 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
 
-                // Login không cần JWT
-                .requestMatchers("/auth/**").permitAll()
+                 // Login và ảnh upload không cần JWT
+                .requestMatchers(
+               "/auth/**",
+               "/uploads/**"
+                ).permitAll()
 
                 // Các API khác bắt buộc phải có JWT
                 .anyRequest().authenticated()

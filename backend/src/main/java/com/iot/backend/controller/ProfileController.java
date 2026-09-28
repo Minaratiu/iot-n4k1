@@ -10,6 +10,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
 @RestController
 @RequestMapping("/profile")
 @CrossOrigin(origins = "*")
@@ -85,6 +92,84 @@ public ResponseEntity<ApiResponse<ProfileResponse>> updateProfile(@RequestBody P
     userRepository.save(user);
 
     return ResponseEntity.ok(new ApiResponse<>(true, request, "Cập nhật thông tin thành công"));
+}
+
+@PostMapping("/avatar")
+public ResponseEntity<ApiResponse<String>> uploadAvatar(
+        @RequestParam("avatar") MultipartFile file
+) {
+    try {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String username = authentication.getName();
+
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(
+                            false,
+                            null,
+                            "Không tìm thấy người dùng"
+                    ));
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse<>(
+                            false,
+                            null,
+                            "Vui lòng chọn ảnh"
+                    ));
+        }
+
+        String originalName = file.getOriginalFilename();
+
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(
+                    originalName.lastIndexOf(".")
+            );
+        }
+
+        String fileName =
+                user.getId() + "_" + System.currentTimeMillis() + extension;
+
+        Path uploadPath = Paths.get("uploads");
+
+        Files.createDirectories(uploadPath);
+
+        Path filePath = uploadPath.resolve(fileName);
+
+        Files.copy(
+                file.getInputStream(),
+                filePath,
+                StandardCopyOption.REPLACE_EXISTING
+        );
+
+        String avatarUrl = "/uploads/" + fileName;
+
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        avatarUrl,
+                        "Tải ảnh đại diện thành công"
+                )
+        );
+
+    } catch (IOException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(
+                        false,
+                        null,
+                        "Không thể lưu ảnh"
+                ));
+    }
 }
 
     // DTO trả về cho FE — không bao gồm password

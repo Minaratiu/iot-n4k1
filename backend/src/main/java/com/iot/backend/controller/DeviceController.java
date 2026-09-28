@@ -306,9 +306,24 @@ public class DeviceController {
                             actionEntity.getCreatedAt()
                     );
 
+                        // Người thực hiện
+                         if (actionEntity.getUser() != null) {
+                        item.put(
+                                  "username",
+                                 actionEntity.getUser().getUsername()
+                                 );
+                        } else {
+                         item.put(
+                                 "username",
+                                 null
+                                );
+                         }
+
 
                     return item;
                 });
+
+
 
 
         // =====================================================

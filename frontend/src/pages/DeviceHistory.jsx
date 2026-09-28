@@ -196,6 +196,8 @@ async function fetchAllHistory({
         backendStatusValue
       ),
 
+      userName: record.username ?? "Không xác định",
+
       time: formatTime(record.createdAt),
     };
   });
@@ -773,6 +775,7 @@ export default function DeviceHistory() {
                   <th>Tên thiết bị</th>
                   <th>Hành động</th>
                   <th>Trạng thái</th>
+                  <th>Người thực hiện</th>
                   <th>Thời gian</th>
                 </tr>
               </thead>
@@ -821,6 +824,15 @@ export default function DeviceHistory() {
                         >
                           {record.status}
                         </span>
+                      </td>
+
+                      {/* USER */}
+
+                      <td>
+                        <span 
+                            className="dh-device-name">
+                             {record.userName}
+                         </span>
                       </td>
 
                       {/* TIME */}

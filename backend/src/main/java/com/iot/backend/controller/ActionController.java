@@ -106,6 +106,7 @@ public class ActionController {
         return new ActionResponse(
                 action.getId(),
                 action.getUser().getId(),
+                action.getUser().getUsername(),
                 action.getDevice().getIdDevice(),
                 action.getDevice().getName(),
                 action.getAction(),
@@ -122,6 +123,7 @@ public class ActionController {
 
         private Integer id;
         private Integer userId;
+        private String username;
         private Integer deviceId;
         private String deviceName;
         private String action;
@@ -131,6 +133,7 @@ public class ActionController {
         public ActionResponse(
                 Integer id,
                 Integer userId,
+                String username,
                 Integer deviceId,
                 String deviceName,
                 String action,
@@ -139,6 +142,7 @@ public class ActionController {
         ) {
             this.id = id;
             this.userId = userId;
+            this.username = username;
             this.deviceId = deviceId;
             this.deviceName = deviceName;
             this.action = action;
@@ -153,6 +157,10 @@ public class ActionController {
         public Integer getUserId() {
             return userId;
         }
+
+        public String getUsername() {
+            return username;
+}
 
         public Integer getDeviceId() {
             return deviceId;

@@ -7,27 +7,21 @@
 .dh-page {
   --dh-bg: #eaf4ff;
   --dh-card: #ffffff;
-
   --dh-primary: #0566ff;
   --dh-primary-hover: #0057e6;
   --dh-primary-text: #0a5cf5;
-
   --dh-text: #4f6485;
   --dh-text-strong: #5b6f8f;
   --dh-muted: #93a3bc;
-
   --dh-line: #e3ebf7;
   --dh-field-bg: #f1f6fe;
   --dh-field-border: #d3e0f5;
-
   --dh-thead-bg: #f3f7fd;
   --dh-row-alt: #f5f8fc;
-
   --dh-error: #e5484d;
 
   min-height: 100vh;
   padding: 24px 50px 60px;
-
   background: var(--dh-bg);
   color: var(--dh-text);
 
@@ -66,7 +60,6 @@
 
   font-size: 13.5px;
   font-weight: 700;
-
   letter-spacing: 0.09em;
   text-transform: uppercase;
 
@@ -80,7 +73,6 @@
   height: 18px;
 
   border-radius: 3px;
-
   background: var(--dh-primary);
 }
 
@@ -95,7 +87,6 @@
   margin: 0 auto;
 
   background: var(--dh-card);
-
   border-radius: 20px;
 
   box-shadow:
@@ -112,10 +103,12 @@
 .dh-filter-grid {
   display: grid;
 
-  grid-template-columns: repeat(3, minmax(130px, 1fr)) minmax(220px, 1.5fr) auto;
+  grid-template-columns:
+    repeat(3, minmax(130px, 1fr))
+    minmax(220px, 1.5fr)
+    auto;
 
   align-items: end;
-
   gap: 22px;
 
   padding: 24px 27px;
@@ -132,7 +125,6 @@
   flex-direction: column;
 
   gap: 7px;
-
   min-width: 0;
 }
 
@@ -162,7 +154,6 @@
   border-radius: 999px;
 
   background: var(--dh-field-bg);
-
   color: var(--dh-text);
 
   font-family: inherit;
@@ -307,7 +298,6 @@
   gap: 8px;
 
   cursor: pointer;
-
   white-space: nowrap;
 
   box-shadow:
@@ -353,7 +343,6 @@
 .dh-error {
   width: 100%;
   max-width: 1312px;
-
   min-height: 60px;
 
   margin: 14px auto 0;
@@ -369,7 +358,6 @@
   border-radius: 16px;
 
   background: #fffafa;
-
   color: var(--dh-error);
 
   font-size: 13px;
@@ -390,7 +378,6 @@
   margin: 16px auto 0;
 
   background: var(--dh-card);
-
   border-radius: 20px;
 
   box-shadow:
@@ -428,7 +415,7 @@
 .dh-table-wrapper {
   width: 100%;
 
-  overflow-x: auto;
+  overflow-x: hidden;
 
   border-top: 1px solid var(--dh-line);
 }
@@ -440,7 +427,16 @@
 .dh-table {
   width: 100%;
 
-  min-width: 760px;
+  /*
+     6 cột:
+     STT
+     Tên thiết bị
+     Hành động
+     Trạng thái
+     Người thực hiện
+     Thời gian
+  */
+  width: 1100px;
 
   border-collapse: collapse;
 
@@ -462,7 +458,7 @@
 .dh-table th {
   height: 48px;
 
-  padding: 0 20px;
+  padding: 0 12px;
 
   text-align: left;
 
@@ -472,49 +468,47 @@
   font-weight: 700;
 
   letter-spacing: 0.08em;
-
   text-transform: uppercase;
 
   color: #5f7396;
 }
+/* =========================================================
+   6 CỘT - HIỂN THỊ ĐỦ TRÊN MỘT MÀN HÌNH
+========================================================= */
 
 /* STT */
-
 .dh-table th:nth-child(1) {
-  width: 90px;
-
+  width: 7%;
   text-align: center;
 }
 
 /* Tên thiết bị */
-
 .dh-table th:nth-child(2) {
-  width: 30%;
-
+  width: 10%;
   text-align: left;
 }
 
 /* Hành động */
-
 .dh-table th:nth-child(3) {
-  width: 17%;
-
+  width: 13%;
   text-align: center;
 }
 
 /* Trạng thái */
-
 .dh-table th:nth-child(4) {
-  width: 17%;
+  width: 14%;
+  text-align: center;
+}
 
+/* Người thực hiện */
+.dh-table th:nth-child(5) {
+  width: 18%;
   text-align: center;
 }
 
 /* Thời gian */
-
-.dh-table th:nth-child(5) {
-  width: 29%;
-
+.dh-table th:nth-child(6) {
+  width: 28%;
   text-align: center;
 }
 
@@ -548,7 +542,7 @@
 ========================================================= */
 
 .dh-table td {
-  padding: 0 20px;
+  padding: 0 12px;
 
   font-size: 14px;
 
@@ -562,7 +556,7 @@
 ========================================================= */
 
 .dh-table td:first-child {
-  width: 90px;
+  width: 8%;
 
   text-align: center;
 }
@@ -612,26 +606,30 @@
 }
 
 /* =========================================================
-   ACTION + STATUS
+   ACTION + STATUS + USER
 ========================================================= */
 
 .dh-table td:nth-child(3),
-.dh-table td:nth-child(4) {
+.dh-table td:nth-child(4),
+.dh-table td:nth-child(5) {
   text-align: center;
 }
 
 /* =========================================================
-   STATUS TAG (Cập nhật giống Hình 1)
+   STATUS TAG
 ========================================================= */
 
 .dh-tag {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
 
   font-size: 14px;
   font-weight: 700;
+
   letter-spacing: 0.03em;
+
   white-space: nowrap;
 }
 
@@ -640,7 +638,7 @@
 ========================================================= */
 
 .dh-on {
-  color: #00bcd4; /* Xanh Cyan */
+  color: #00bcd4;
 }
 
 /* =========================================================
@@ -648,7 +646,7 @@
 ========================================================= */
 
 .dh-off {
-  color: #ff7a00; /* Cam */
+  color: #ff7a00;
 }
 
 /* =========================================================
@@ -656,14 +654,28 @@
 ========================================================= */
 
 .dh-loading {
-  color: #8a2be2; /* Tím */
+  color: #8a2be2;
+}
+
+/* =========================================================
+   USERNAME
+========================================================= */
+
+.dh-table td:nth-child(5) {
+  color: var(--dh-text-strong);
+
+  font-size: 14px;
+
+  white-space: nowrap;
 }
 
 /* =========================================================
    TIME
 ========================================================= */
 
-.dh-table td:nth-child(5) {
+.dh-table td:nth-child(6) {
+  min-width: 190px;
+
   text-align: center;
 
   color: var(--dh-text-strong);
@@ -672,6 +684,9 @@
 
   font-variant-numeric: tabular-nums;
 
+  /*
+     Không cho ngày giờ xuống dòng
+  */
   white-space: nowrap;
 }
 
@@ -685,7 +700,6 @@
   min-height: 64px;
 
   display: flex;
-
   align-items: center;
   justify-content: center;
 
@@ -722,7 +736,9 @@
 
 .dh-pagination {
   display: flex;
+
   align-items: center;
+
   gap: 9px;
 }
 
@@ -870,6 +886,14 @@
   .dh-search-btn {
     width: 100%;
   }
+
+  /*
+     Giữ bảng đủ rộng để 6 cột không bị ép.
+     Người dùng có thể cuộn ngang.
+  */
+  .dh-table {
+    min-width: 1100px;
+  }
 }
 
 /* =========================================================
@@ -919,8 +943,18 @@
     overflow-x: auto;
   }
 
+  /*
+     6 cột vẫn giữ nguyên độ rộng.
+     Không để mobile ép cột thời gian xuống dòng.
+  */
   .dh-table {
-    min-width: 760px;
+    min-width: 1100px;
+  }
+
+  .dh-table th,
+  .dh-table td {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .dh-table-footer {
