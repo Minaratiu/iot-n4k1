@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Home as HomeIcon,
@@ -22,7 +22,7 @@ import {
 } from "recharts";
 
 import {
-  getLatestSensors,
+  getDataSensors,
   getDevices,
   getChartData,
   controlDevice,
@@ -39,44 +39,188 @@ function Home() {
   const [devices, setDevices] = useState([]);
   const [charts, setCharts] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+ 
 
   const [controllingId, setControllingId] = useState(null);
 
-  // =========================
-  // LOAD DASHBOARD
-  // =========================
+// =========================
+// LOAD DASHBOARD
+// =========================
+const chartLoadingRef = useRef(false);
+// =========================
+// LOAD SENSOR
+// =========================
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+const SENSOR_IDS = [1, 2, 3];
 
-  const loadDashboard = async () => {
+const withTimeout = (promise, ms = 5000) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Quá thời gian chờ")),
+        ms
+      )
+    ),
+  ]);
+
+const loadSensors = async () => {
+  try {
+    const results = await withTimeout(
+      Promise.all(
+        SENSOR_IDS.map((id) =>
+          getDataSensors({
+            page: 1,
+            limit: 1,
+            sort: "desc",
+            sensor_id: id,
+          })
+        )
+      )
+    );
+
+    console.log("SENSOR DATA:", results);
+
+    const list = results
+      .map((result, index) => {
+        const item = result.data?.items?.[0];
+
+        if (!item) {
+          return null;
+        }
+
+        return {
+          ...item,
+          sensor_id: SENSOR_IDS[index],
+        };
+      })
+      .filter(Boolean);
+
+    setSensors(list);
+
+  } catch (error) {
+    console.error("Lỗi tải sensor:", error);
+  }
+};
+// =========================
+// LOAD DEVICES
+// =========================
+
+const loadDevices = async () => {
+  try {
+    const response = await getDevices();
+
+    setDevices(response.data || []);
+
+  } catch (error) {
+    console.error("Lỗi tải thiết bị:", error);
+  }
+};
+// =========================
+// LOAD CHART
+// =========================
+
+const loadCharts = async () => {
+  // Không cho chart request chạy chồng
+  if (chartLoadingRef.current) {
+    return;
+  }
+
+  chartLoadingRef.current = true;
+
+  try {
+    const chartResponse = await getChartData(50);
+
+    setCharts(chartResponse.data || []);
+
+  } catch (error) {
+    console.error("Lỗi cập nhật biểu đồ:", error);
+
+  } finally {
+    chartLoadingRef.current = false;
+  }
+};
+
+// =========================
+// INITIAL LOAD + CARD 2s
+// =========================
+// =========================
+// SENSOR 2 GIÂY
+// =========================
+useEffect(() => {
+  let stopped = false;
+  let timer = null;
+
+  const refreshSensors = async () => {
+    if (stopped) {
+      return;
+    }
+
     try {
-      setLoading(true);
-      setError("");
-
-      const [sensorResponse, deviceResponse, chartResponse] =
-        await Promise.all([
-          getLatestSensors(),
-          getDevices(),
-          getChartData(50),
-        ]);
-
-      setSensors(sensorResponse.data || []);
-      setDevices(deviceResponse.data || []);
-      setCharts(chartResponse.data || []);
-
+      await loadSensors();
     } catch (error) {
-      console.error("Lỗi tải Dashboard:", error);
-      setError(error.message);
+      console.error("Lỗi refresh sensor:", error);
+    }
 
-    } finally {
-      setLoading(false);
+    if (!stopped) {
+      timer = setTimeout(() => {
+        refreshSensors();
+      }, 2000);
     }
   };
 
+  // Lấy dữ liệu ngay khi mở Home
+  refreshSensors();
+
+  return () => {
+    stopped = true;
+
+    if (timer) {
+      clearTimeout(timer);
+    }
+  };
+}, []);
+
+// =========================
+// DEVICE
+// =========================
+
+useEffect(() => {
+  loadDevices();
+}, []);
+// =========================
+// CHART 1 PHÚT
+// =========================
+
+useEffect(() => {
+  let stopped = false;
+  let timer = null;
+
+  const refreshCharts = async () => {
+    if (stopped) {
+      return;
+    }
+
+    await loadCharts();
+
+    if (!stopped) {
+      timer = setTimeout(() => {
+        refreshCharts();
+      }, 60000); // 60 giây = 1 phút
+    }
+  };
+
+  // Tải biểu đồ lần đầu
+  refreshCharts();
+
+  return () => {
+    stopped = true;
+
+    if (timer) {
+      clearTimeout(timer);
+    }
+  };
+}, []);
   // =========================
   // GET SENSOR
   // =========================
@@ -140,25 +284,25 @@ function Home() {
   // =========================
   // CHECK DEVICE STATUS
   // =========================
+const isDeviceOn = (device) => {
+  const status =
+    device.current_status ??
+    device.status ??
+    device.state ??
+    device.is_on ??
+    false;
 
-  const isDeviceOn = (device) => {
-    const status =
-      device.status ??
-      device.state ??
-      device.is_on ??
-      false;
+  if (typeof status === "string") {
+    const normalizedStatus = status.toUpperCase();
 
-    if (typeof status === "string") {
-      const normalizedStatus = status.toUpperCase();
+    return (
+      normalizedStatus === "ON" ||
+      normalizedStatus === "ACTIVE"
+    );
+  }
 
-      return (
-        normalizedStatus === "ON" ||
-        normalizedStatus === "ACTIVE"
-      );
-    }
-
-    return Boolean(status);
-  };
+  return Boolean(status);
+};
 
   // =========================
   // DEVICE ICON
@@ -171,63 +315,101 @@ function Home() {
   // =========================
   // CONTROL DEVICE
   // =========================
+const handleDeviceControl = async (device) => {
+  const deviceId =
+    device.device_id ??
+    device.id;
 
-  const handleDeviceControl = async (device) => {
-    const deviceId =
-      device.device_id ??
-      device.id;
+  if (!deviceId) {
+    console.error(
+      "Không tìm thấy device ID:",
+      device
+    );
+    return;
+  }
 
-    if (!deviceId) {
-      console.error("Không tìm thấy device ID:", device);
-      return;
-    }
+  // Kiểm tra trạng thái hiện tại
+  const currentStatus = isDeviceOn(device);
 
-    const currentStatus = isDeviceOn(device);
+  // Nếu đang ON → gửi OFF
+  // Nếu đang OFF → gửi ON
+  const action = currentStatus
+    ? "off"
+    : "on";
 
-    const action = currentStatus
-      ? "off"
-      : "on";
+  try {
+    setControllingId(deviceId);
+
+    // GỬI LỆNH ĐẾN BACKEND
+   
+
+    await controlDevice(
+      deviceId,
+      action
+    );
+
+    // CẬP NHẬT GIAO DIỆN NGAY
+    
+    setDevices((prevDevices) =>
+      prevDevices.map((item) => {
+        const itemId =
+          item.device_id ??
+          item.id;
+
+        if (
+          Number(itemId) !==
+          Number(deviceId)
+        ) {
+          return item;
+        }
+
+        return {
+          ...item,
+          current_status: action,
+        };
+      })
+    );
+
+    // ĐỢI BACKEND CẬP NHẬT
+   
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, 1000)
+    );
+
+    // LẤY LẠI TRẠNG THÁI THẬT
+  
 
     try {
-      setControllingId(deviceId);
+      const response =
+        await getDevices();
 
-      await controlDevice(
-        deviceId,
-        action
+      setDevices(
+        response.data || []
       );
-
-      /*
-       * Backend cần một khoảng thời gian
-       * để gửi MQTT và cập nhật trạng thái.
-       */
-      setTimeout(async () => {
-        try {
-          const response = await getDevices();
-
-          setDevices(
-            response.data || []
-          );
-
-        } catch (error) {
-          console.error(
-            "Lỗi cập nhật thiết bị:",
-            error
-          );
-        }
-      }, 500);
 
     } catch (error) {
       console.error(
-        "Lỗi điều khiển thiết bị:",
+        "Lỗi cập nhật thiết bị:",
         error
       );
-
-      alert(error.message);
-
-    } finally {
-      setControllingId(null);
     }
-  };
+
+  } catch (error) {
+
+    console.error(
+      "Lỗi điều khiển thiết bị:",
+      error
+    );
+
+    alert(error.message);
+
+  } finally {
+
+    setControllingId(null);
+
+  }
+};
 
   // =========================
   // ACTIVE DEVICE COUNT
@@ -236,47 +418,7 @@ function Home() {
   const activeDevicesCount =
     devices.filter(isDeviceOn).length;
 
-  // =========================
-  // LOADING
-  // =========================
 
-  if (loading) {
-    return (
-      <div className="dashboard-loading">
-
-        <div className="loading-spinner"></div>
-
-        <p>
-          Đang tải dữ liệu...
-        </p>
-
-      </div>
-    );
-  }
-
-  // =========================
-  // ERROR
-  // =========================
-
-  if (error) {
-    return (
-      <div className="dashboard-error">
-
-        <h2>
-          Không thể tải Dashboard
-        </h2>
-
-        <p>
-          {error}
-        </p>
-
-        <button onClick={loadDashboard}>
-          Thử lại
-        </button>
-
-      </div>
-    );
-  }
 
   // =========================
   // UI
