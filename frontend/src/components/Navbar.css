@@ -1,7 +1,8 @@
 .dashboard-header {
-  padding: 32px 32px 0;
+  padding: 32px 99px 0;
+  display: flex;
+  justify-content: center;
 }
-
 .dashboard-nav {
   display: inline-flex;
 }
@@ -9,11 +10,11 @@
 .nav-menu {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: #ffffff;
   border-radius: 999px;
   padding: 6px;
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+ 
 }
 
 .nav-item {

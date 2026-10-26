@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import "./DataSensor.css";
 import { getDataSensors } from "../services/api";
-import { Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon, Copy } from "lucide-react";
 
 const SENSOR_TYPES = [
   { name: "Nhiệt độ", id: 1 },
   { name: "Độ ẩm", id: 2 },
   { name: "Ánh sáng", id: 3 },
 ];
-
-const PAGE_SIZE = 5;
 
 // ==========================================
 // CHUẨN HÓA THỜI GIAN NHẬP
@@ -20,10 +18,12 @@ function normalizeTimeInput(value) {
 
   return value.trim().replace(/\s+/g, " ");
 }
+
 // ==========================================
 // THÊM 0 VÀO THÁNG / NGÀY / GIỜ / PHÚT / GIÂY
 // KHÔNG TỰ THÊM PHẦN BỊ THIẾU
 // ==========================================
+
 function padTimeParts(value) {
   if (!value) return "";
 
@@ -63,13 +63,6 @@ function padTimeParts(value) {
     return newDate;
   }
 
-  // QUAN TRỌNG:
-  // Giữ nguyên số lượng phần thời gian người dùng nhập.
-  //
-  // 21       -> 21
-  // 8:15     -> 08:15
-  // 8:15:22  -> 08:15:22
-
   const timeParts = timePart.split(":");
 
   const newTime = timeParts
@@ -99,11 +92,6 @@ function parseNumber(value) {
 
 // ==========================================
 // HIỂN THỊ THỜI GIAN
-// Backend trả:
-// 2024/11/18 08:15:22
-//
-// UI hiển thị:
-// 2024-11-18 08:15:22
 // ==========================================
 
 function formatRecordedAt(value) {
@@ -129,6 +117,21 @@ export default function DataSensor() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pageSize, setPageSize] = useState(5);
+
+  // ==========================================
+  // SAO CHÉP THỜI GIAN
+  // ==========================================
+
+  const handleCopyTime = async (value) => {
+    try {
+      await navigator.clipboard.writeText(
+        formatRecordedAt(value)
+      );
+    } catch (err) {
+      console.error("Không thể sao chép thời gian:", err);
+    }
+  };
 
   // ==========================================
   // TẠO KHOẢNG THỜI GIAN TỪ INPUT
@@ -145,14 +148,7 @@ export default function DataSensor() {
     const normalized = normalizeTimeInput(timeInput);
     const padded = padTimeParts(normalized);
 
-    // ========================================
-    // 1. YYYY
-    // Ví dụ:
-    // 2024
-    //
-    // => cả năm
-    // ========================================
-
+    // 1. YYYY => cả năm
     if (/^\d{4}$/.test(padded)) {
       return {
         from: `${padded}-01-01 00:00:00`,
@@ -160,17 +156,9 @@ export default function DataSensor() {
       };
     }
 
-    // ========================================
-    // 2. YYYY-MM
-    // Ví dụ:
-    // 2024-11
-    //
-    // => cả tháng
-    // ========================================
-
+    // 2. YYYY-MM => cả tháng
     if (/^\d{4}-\d{2}$/.test(padded)) {
       const [year, month] = padded.split("-");
-
       const monthNumber = Number(month);
 
       if (monthNumber < 1 || monthNumber > 12) {
@@ -192,14 +180,7 @@ export default function DataSensor() {
       };
     }
 
-    // ========================================
-    // 3. YYYY-MM-DD
-    // Ví dụ:
-    // 2024-11-18
-    //
-    // => cả ngày
-    // ========================================
-
+    // 3. YYYY-MM-DD => cả ngày
     if (/^\d{4}-\d{2}-\d{2}$/.test(padded)) {
       return {
         from: `${padded} 00:00:00`,
@@ -207,19 +188,9 @@ export default function DataSensor() {
       };
     }
 
-    // ========================================
-    // 4. YYYY-MM-DD HH
-    // Ví dụ:
-    // 2024-11-18 08
-    //
-    // => 08:00:00 → 08:59:59
-    // ========================================
-
-    if (
-      /^\d{4}-\d{2}-\d{2} \d{2}$/.test(padded)
-    ) {
+    // 4. YYYY-MM-DD HH => cả giờ
+    if (/^\d{4}-\d{2}-\d{2} \d{2}$/.test(padded)) {
       const [date, hour] = padded.split(" ");
-
       const hourNumber = Number(hour);
 
       if (hourNumber < 0 || hourNumber > 23) {
@@ -232,21 +203,9 @@ export default function DataSensor() {
       };
     }
 
-    // ========================================
-    // 5. YYYY-MM-DD HH:mm
-    // Ví dụ:
-    // 2024-11-18 08:15
-    //
-    // => 08:15:00 → 08:15:59
-    // ========================================
-
-    if (
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(
-        padded
-      )
-    ) {
+    // 5. YYYY-MM-DD HH:mm => cả phút
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(padded)) {
       const [date, time] = padded.split(" ");
-
       const [hour, minute] = time.split(":");
 
       const hourNumber = Number(hour);
@@ -257,9 +216,7 @@ export default function DataSensor() {
       }
 
       if (minuteNumber < 0 || minuteNumber > 59) {
-        throw new Error(
-          "Phút phải từ 00 đến 59."
-        );
+        throw new Error("Phút phải từ 00 đến 59.");
       }
 
       return {
@@ -268,23 +225,10 @@ export default function DataSensor() {
       };
     }
 
-    // ========================================
-    // 6. YYYY-MM-DD HH:mm:ss
-    // Ví dụ:
-    // 2024-11-18 08:15:22
-    //
-    // => đúng giây đó
-    // ========================================
-
-    if (
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(
-        padded
-      )
-    ) {
+    // 6. YYYY-MM-DD HH:mm:ss => đúng giây đó
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(padded)) {
       const [date, time] = padded.split(" ");
-
-      const [hour, minute, second] =
-        time.split(":");
+      const [hour, minute, second] = time.split(":");
 
       const hourNumber = Number(hour);
       const minuteNumber = Number(minute);
@@ -295,15 +239,11 @@ export default function DataSensor() {
       }
 
       if (minuteNumber < 0 || minuteNumber > 59) {
-        throw new Error(
-          "Phút phải từ 00 đến 59."
-        );
+        throw new Error("Phút phải từ 00 đến 59.");
       }
 
       if (secondNumber < 0 || secondNumber > 59) {
-        throw new Error(
-          "Giây phải từ 00 đến 59."
-        );
+        throw new Error("Giây phải từ 00 đến 59.");
       }
 
       return {
@@ -312,13 +252,7 @@ export default function DataSensor() {
       };
     }
 
-    // ========================================
-    // KHÔNG ĐÚNG ĐỊNH DẠNG
-    // ========================================
-
-    throw new Error(
-      "Thời gian không hợp lệ."
-    );
+    throw new Error("Thời gian không hợp lệ.");
   };
 
   // ==========================================
@@ -334,22 +268,16 @@ export default function DataSensor() {
 
       const params = {
         page: pageNumber,
-        limit: PAGE_SIZE,
+        limit: pageSize,
         sort: "desc",
       };
 
-      // ------------------------------
       // CẢM BIẾN
-      // ------------------------------
-
       if (sensorType !== "") {
         params.sensor_id = sensorType;
       }
 
-      // ------------------------------
       // THỜI GIAN
-      // ------------------------------
-
       if (timeParams.from) {
         params.from = timeParams.from;
       }
@@ -358,70 +286,35 @@ export default function DataSensor() {
         params.to = timeParams.to;
       }
 
-      // ------------------------------
       // GIÁ TRỊ
-      // ------------------------------
-
       if (valueInput.trim() !== "") {
-        const number = parseNumber(
-          valueInput.trim()
-        );
+        const number = parseNumber(valueInput.trim());
 
         if (number === null) {
-          throw new Error(
-            "Giá trị cảm biến phải là số."
-          );
+          throw new Error("Giá trị cảm biến phải là số.");
         }
 
-        // Tìm đúng giá trị
         params.min_value = number;
         params.max_value = number;
       }
 
-      // ========================================
-      // GỌI API.JS
-      // ========================================
-
+      // GỌI API
       const result = await getDataSensors(params);
-
-      // result:
-      // {
-      //   success: true,
-      //   data: {
-      //      items: [],
-      //      pagination: {}
-      //   },
-      //   message: "..."
-      // }
-
       const data = result.data;
 
       setRows(data?.items || []);
-
-      setTotal(
-        data?.pagination?.total || 0
-      );
-
-      setPage(
-        data?.pagination?.page || pageNumber
-      );
-
-      setTotalPages(
-        data?.pagination?.total_pages || 0
-      );
+      setTotal(data?.pagination?.total || 0);
+      setPage(data?.pagination?.page || pageNumber);
+      setTotalPages(data?.pagination?.total_pages || 0);
     } catch (err) {
-      console.error(
-        "Lỗi lấy dữ liệu cảm biến:",
-        err
-      );
+      console.error("Lỗi lấy dữ liệu cảm biến:", err);
 
       setRows([]);
       setTotal(0);
       setTotalPages(0);
 
       setError(
-        err.message ||
-          "Không thể lấy dữ liệu cảm biến."
+        err.message || "Không thể lấy dữ liệu cảm biến."
       );
     } finally {
       setLoading(false);
@@ -433,8 +326,8 @@ export default function DataSensor() {
   // ==========================================
 
   useEffect(() => {
-    fetchData(1);
-  }, []);
+    fetchData(page);
+  }, [page, pageSize]);
 
   // ==========================================
   // TÌM KIẾM
@@ -461,11 +354,7 @@ export default function DataSensor() {
   // ==========================================
 
   const handleNext = () => {
-    if (
-      page >= totalPages ||
-      totalPages === 0 ||
-      loading
-    ) {
+    if (page >= totalPages || totalPages === 0 || loading) {
       return;
     }
 
@@ -479,36 +368,22 @@ export default function DataSensor() {
   return (
     <div className="ds-page">
       <div className="ds-container">
-
-        <h1 className="ds-title">
-          Dữ liệu cảm biến
-        </h1>
+        <h1 className="ds-title">Dữ liệu cảm biến</h1>
 
         <div className="ds-card">
-
           <div className="ds-filters">
-
             {/* TÊN CẢM BIẾN */}
             <div className="ds-control">
-              <label>
-                Tên cảm biến
-              </label>
+              <label>Tên cảm biến</label>
 
               <select
                 value={sensorType}
-                onChange={(e) =>
-                  setSensorType(e.target.value)
-                }
+                onChange={(e) => setSensorType(e.target.value)}
               >
-                <option value="">
-                  Tất cả
-                </option>
+                <option value="">Tất cả</option>
 
                 {SENSOR_TYPES.map((sensor) => (
-                  <option
-                    key={sensor.id}
-                    value={sensor.id}
-                  >
+                  <option key={sensor.id} value={sensor.id}>
                     {sensor.name}
                   </option>
                 ))}
@@ -517,32 +392,24 @@ export default function DataSensor() {
 
             {/* GIÁ TRỊ */}
             <div className="ds-control">
-              <label>
-                Giá trị cảm biến
-              </label>
+              <label>Giá trị cảm biến</label>
 
               <input
                 type="text"
                 value={valueInput}
-                onChange={(e) =>
-                  setValueInput(e.target.value)
-                }
+                onChange={(e) => setValueInput(e.target.value)}
                 placeholder="Nhập giá trị"
               />
             </div>
 
             {/* THỜI GIAN */}
             <div className="ds-control">
-              <label>
-                Thời gian
-              </label>
+              <label>Thời gian</label>
 
               <input
                 type="text"
                 value={timeInput}
-                onChange={(e) =>
-                  setTimeInput(e.target.value)
-                }
+                onChange={(e) => setTimeInput(e.target.value)}
                 placeholder="YYYY-MM-DD HH:mm:ss"
               />
             </div>
@@ -556,19 +423,13 @@ export default function DataSensor() {
               <SearchIcon />
               <span>Tìm kiếm</span>
             </button>
-
           </div>
 
           {/* LỖI */}
-          {error && (
-            <div className="ds-empty">
-              {error}
-            </div>
-          )}
+          {error && <div className="ds-empty">{error}</div>}
 
           {/* BẢNG */}
           <div className="ds-row">
-
             <table>
               <thead className="ds-thead">
                 <tr>
@@ -580,22 +441,15 @@ export default function DataSensor() {
               </thead>
 
               <tbody className="ds-tbody">
-
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan="4"
-                      className="ds-empty"
-                    >
+                    <td colSpan="4" className="ds-empty">
                       Đang tải dữ liệu...
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan="4"
-                      className="ds-empty"
-                    >
+                    <td colSpan="4" className="ds-empty">
                       Không tìm thấy dữ liệu
                     </td>
                   </tr>
@@ -603,76 +457,101 @@ export default function DataSensor() {
                   rows.map((row, index) => (
                     <tr key={row.id}>
                       <td>
-  <span className="ds-stt-badge">
-    {(page - 1) * PAGE_SIZE + index + 1}
-  </span>
-</td>
-
-                      <td>
-                        {row.sensor_name}
+                        <span className="ds-stt-badge">
+                          {(page - 1) * pageSize + index + 1}
+                        </span>
                       </td>
+
+                      <td>{row.sensor_name}</td>
 
                       <td>
                         {row.value} {row.unit}
                       </td>
 
+                      {/* THỜI GIAN + NÚT SAO CHÉP */}
                       <td>
-                        {formatRecordedAt(
-                          row.recorded_at
-                        )}
+                        <div className="ds-time-cell">
+                          <span>
+                            {formatRecordedAt(row.recorded_at)}
+                          </span>
+
+                          <button
+                            type="button"
+                            className="ds-copy-btn"
+                            onClick={() =>
+                              handleCopyTime(row.recorded_at)
+                            }
+                            title="Sao chép thời gian"
+                            aria-label="Sao chép thời gian"
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 )}
-
               </tbody>
             </table>
-
           </div>
 
           {/* PHÂN TRANG */}
-<div className="ds-tfoot">
+          <div className="ds-tfoot">
+            {/* SỐ LƯỢNG BẢN GHI */}
+            <div className="ds-summary">
+              {total === 0 ? (
+                "Hiển thị 0 bản ghi"
+              ) : (
+                <>
+                  Hiển thị{" "}
 
-  {/* Hiển thị số lượng bản ghi hiển thị (VD: Hiển thị 1-5 / 20 bản ghi) */}
-  <div className="ds-summary">
-    {total === 0 ? (
-      "Hiển thị 0 bản ghi"
-    ) : (
-      <>
-        Hiển thị <strong>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}</strong> / {total} bản ghi
-      </>
-    )}
-  </div>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="ds-page-size"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                  </select>
 
-  <div className="ds-pager">
+                  {" "}bản ghi / {total} bản ghi
+                </>
+              )}
+            </div>
 
-    {/* Nút Trước */}
-    <button
-      className="ds-pg-btn"
-      onClick={handlePrevious}
-      disabled={page <= 1 || loading}
-    >
-      &lt; Trước
-    </button>
+            <div className="ds-pager">
+              {/* TRANG TRƯỚC */}
+              <button
+                className="ds-pg-btn"
+                onClick={handlePrevious}
+                disabled={page <= 1 || loading}
+              >
+                &lt; Trước
+              </button>
 
-    {/* Trang hiện tại / Tổng số trang */}
-    <span className="ds-pg-current">
-      Trang {totalPages === 0 ? 0 : page} / {totalPages}
-    </span>
+              {/* TRANG HIỆN TẠI */}
+              <span className="ds-pg-current">
+                Trang {totalPages === 0 ? 0 : page} / {totalPages}
+              </span>
 
-    {/* Nút Sau */}
-    <button
-      className="ds-pg-btn"
-      onClick={handleNext}
-      disabled={page >= totalPages || totalPages === 0 || loading}
-    >
-      Sau &gt;
-    </button>
-
-  </div>
-
-</div>
-
+              {/* TRANG SAU */}
+              <button
+                className="ds-pg-btn"
+                onClick={handleNext}
+                disabled={
+                  page >= totalPages ||
+                  totalPages === 0 ||
+                  loading
+                }
+              >
+                Sau &gt;
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -119,9 +119,8 @@ const loadDevices = async () => {
 // =========================
 // LOAD CHART
 // =========================
-
 const loadCharts = async () => {
-  // Không cho chart request chạy chồng
+  // Không cho các request biểu đồ chạy chồng nhau
   if (chartLoadingRef.current) {
     return;
   }
@@ -132,10 +131,8 @@ const loadCharts = async () => {
     const chartResponse = await getChartData(50);
 
     setCharts(chartResponse.data || []);
-
   } catch (error) {
     console.error("Lỗi cập nhật biểu đồ:", error);
-
   } finally {
     chartLoadingRef.current = false;
   }
@@ -189,9 +186,8 @@ useEffect(() => {
   loadDevices();
 }, []);
 // =========================
-// CHART 1 PHÚT
+// CHART 2 GIÂY
 // =========================
-
 useEffect(() => {
   let stopped = false;
   let timer = null;
@@ -206,11 +202,11 @@ useEffect(() => {
     if (!stopped) {
       timer = setTimeout(() => {
         refreshCharts();
-      }, 60000); // 60 giây = 1 phút
+      }, 2000);
     }
   };
 
-  // Tải biểu đồ lần đầu
+  // Tải biểu đồ ngay khi mở Home
   refreshCharts();
 
   return () => {
@@ -272,6 +268,49 @@ useEffect(() => {
           value: point.value,
         };
       });
+  };
+
+  // Gộp dữ liệu nhiệt độ và độ ẩm vào cùng một biểu đồ
+  const formatCombinedPoints = (tempPoints = [], humidityPoints = []) => {
+    const map = new Map();
+
+    // Thêm dữ liệu nhiệt độ
+    tempPoints.forEach((point) => {
+      const date = new Date(point.recorded_at.replace(" ", "T"));
+
+      const time = isNaN(date.getTime())
+        ? point.recorded_at
+        : date.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+      if (!map.has(time)) {
+        map.set(time, { time });
+      }
+
+      map.get(time).temperature = Number(point.value);
+    });
+
+    // Thêm dữ liệu độ ẩm
+    humidityPoints.forEach((point) => {
+      const date = new Date(point.recorded_at.replace(" ", "T"));
+
+      const time = isNaN(date.getTime())
+        ? point.recorded_at
+        : date.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+      if (!map.has(time)) {
+        map.set(time, { time });
+      }
+
+      map.get(time).humidity = Number(point.value);
+    });
+
+    return Array.from(map.values());
   };
 
   const getAverage = (points) => {
@@ -562,8 +601,9 @@ const handleDeviceControl = async (device) => {
 
           <div className="chart-section">
 
-
-            {/* TEMPERATURE */}
+            {/* =========================
+                TEMPERATURE + HUMIDITY
+            ========================= */}
 
             <div className="chart-card">
 
@@ -574,27 +614,36 @@ const handleDeviceControl = async (device) => {
                   <Thermometer size={18} />
 
                   <span>
-                    BIỂU ĐỒ NHIỆT ĐỘ
+                    BIỂU ĐỒ NHIỆT ĐỘ & ĐỘ ẨM
                   </span>
 
                 </div>
 
                 <span className="chart-unit">
-                  {tempChart?.unit ?? "°C"}
+                  °C / %
                 </span>
 
               </div>
 
-
               <div className="chart-content">
 
-                {tempChart?.points?.length ? (
+                {tempChart?.points?.length || humidityChart?.points?.length ? (
+
                   <ResponsiveContainer width="100%" height="100%">
+
                     <LineChart
-                      data={formatPoints(tempChart.points)}
+                      data={formatCombinedPoints(
+                        tempChart?.points || [],
+                        humidityChart?.points || []
+                      )}
                       margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
                     >
-                      <CartesianGrid vertical={false} stroke="#eef1f6" />
+
+                      <CartesianGrid
+                        vertical={false}
+                        stroke="#eef1f6"
+                      />
+
                       <XAxis
                         dataKey="time"
                         tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -602,6 +651,7 @@ const handleDeviceControl = async (device) => {
                         tickLine={false}
                         minTickGap={40}
                       />
+
                       <YAxis
                         tick={{ fontSize: 11, fill: "#94a3b8" }}
                         axisLine={false}
@@ -609,103 +659,35 @@ const handleDeviceControl = async (device) => {
                         width={40}
                         domain={["auto", "auto"]}
                       />
+
+                      {/* Đường nhiệt độ */}
                       <Line
                         type="monotone"
-                        dataKey={() => getAverage(tempChart.points)}
-                        stroke="#cbd5e1"
-                        strokeDasharray="4 4"
-                        dot={false}
-                        strokeWidth={1.5}
-                        isAnimationActive={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
+                        dataKey="temperature"
                         stroke="#f0883e"
                         strokeWidth={2.5}
                         dot={false}
                       />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="chart-empty">
-                    Chưa có dữ liệu
-                  </div>
-                )}
 
-              </div>
-
-            </div>
-
-
-            {/* HUMIDITY */}
-
-            <div className="chart-card">
-
-              <div className="chart-header">
-
-                <div className="chart-title">
-
-                  <Droplets size={18} />
-
-                  <span>
-                    BIỂU ĐỒ ĐỘ ẨM
-                  </span>
-
-                </div>
-
-                <span className="chart-unit">
-                  {humidityChart?.unit ?? "%"}
-                </span>
-
-              </div>
-
-
-              <div className="chart-content">
-
-                {humidityChart?.points?.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={formatPoints(humidityChart.points)}
-                      margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
-                    >
-                      <CartesianGrid vertical={false} stroke="#eef1f6" />
-                      <XAxis
-                        dataKey="time"
-                        tick={{ fontSize: 11, fill: "#94a3b8" }}
-                        axisLine={false}
-                        tickLine={false}
-                        minTickGap={40}
-                      />
-                      <YAxis
-                        tick={{ fontSize: 11, fill: "#94a3b8" }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={40}
-                        domain={["auto", "auto"]}
-                      />
+                      {/* Đường độ ẩm */}
                       <Line
                         type="monotone"
-                        dataKey={() => getAverage(humidityChart.points)}
-                        stroke="#cbd5e1"
-                        strokeDasharray="4 4"
-                        dot={false}
-                        strokeWidth={1.5}
-                        isAnimationActive={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
+                        dataKey="humidity"
                         stroke="#2dd4d4"
                         strokeWidth={2.5}
                         dot={false}
                       />
+
                     </LineChart>
+
                   </ResponsiveContainer>
+
                 ) : (
+
                   <div className="chart-empty">
                     Chưa có dữ liệu
                   </div>
+
                 )}
 
               </div>
@@ -713,7 +695,9 @@ const handleDeviceControl = async (device) => {
             </div>
 
 
-            {/* LIGHT */}
+            {/* =========================
+                LIGHT
+            ========================= */}
 
             <div className="chart-card">
 
@@ -724,7 +708,7 @@ const handleDeviceControl = async (device) => {
                   <Sun size={18} />
 
                   <span>
-                    BIỂU ĐỒ ĐỘ SÁNG
+                    BIỂU ĐỒ ÁNH SÁNG
                   </span>
 
                 </div>
@@ -735,16 +719,22 @@ const handleDeviceControl = async (device) => {
 
               </div>
 
-
               <div className="chart-content">
 
                 {lightChart?.points?.length ? (
+
                   <ResponsiveContainer width="100%" height="100%">
+
                     <LineChart
                       data={formatPoints(lightChart.points)}
                       margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
                     >
-                      <CartesianGrid vertical={false} stroke="#eef1f6" />
+
+                      <CartesianGrid
+                        vertical={false}
+                        stroke="#eef1f6"
+                      />
+
                       <XAxis
                         dataKey="time"
                         tick={{ fontSize: 11, fill: "#94a3b8" }}
@@ -752,6 +742,7 @@ const handleDeviceControl = async (device) => {
                         tickLine={false}
                         minTickGap={40}
                       />
+
                       <YAxis
                         tick={{ fontSize: 11, fill: "#94a3b8" }}
                         axisLine={false}
@@ -759,15 +750,7 @@ const handleDeviceControl = async (device) => {
                         width={40}
                         domain={["auto", "auto"]}
                       />
-                      <Line
-                        type="monotone"
-                        dataKey={() => getAverage(lightChart.points)}
-                        stroke="#cbd5e1"
-                        strokeDasharray="4 4"
-                        dot={false}
-                        strokeWidth={1.5}
-                        isAnimationActive={false}
-                      />
+
                       <Line
                         type="monotone"
                         dataKey="value"
@@ -775,12 +758,17 @@ const handleDeviceControl = async (device) => {
                         strokeWidth={2.5}
                         dot={false}
                       />
+
                     </LineChart>
+
                   </ResponsiveContainer>
+
                 ) : (
+
                   <div className="chart-empty">
                     Chưa có dữ liệu
                   </div>
+
                 )}
 
               </div>
@@ -788,7 +776,6 @@ const handleDeviceControl = async (device) => {
             </div>
 
           </div>
-
 
           {/* =========================
               DEVICE CONTROL

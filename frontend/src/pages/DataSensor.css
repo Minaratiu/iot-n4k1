@@ -4,10 +4,10 @@
    BIẾN MÀU
 ========================================================= */
 .ds-page {
-  --ds-bg: #eaf4ff;
-  --ds-card: #ffffff;
-  --ds-primary: #0566ff;
-  --ds-primary-text: #0a5cf5;
+  --ds-bg: #eaf4ff;  /* Màu nền toàn bộ trang */
+  --ds-card: #ffffff; /* Màu nền của card/bảng */
+  --ds-primary: #0566ff; /* Màu xanh chính */
+  --ds-primary-text: #0a5cf5;  /* Màu xanh chữ nổi bật */
   --ds-text: #4f6485;
   --ds-text-strong: #5b6f8f;
   --ds-muted: #93a3bc;
@@ -56,7 +56,7 @@
 ========================================================= */
 .ds-title {
   display: flex;
-  align-items: center;
+  align-items: center; 
   gap: 9px;
 
   margin: 0 0 14px;
@@ -90,11 +90,11 @@
   background: var(--ds-card);
 
   border-radius: 20px;
-
+/* Tạo bóng card */
   box-shadow:
     0 2px 10px rgba(30, 70, 130, 0.08),
     0 1px 3px rgba(30, 70, 130, 0.04);
-
+ /* Ẩn phần tràn ra ngoài */
   overflow: hidden;
 }
 
@@ -104,31 +104,33 @@
 ========================================================= */
 .ds-filters {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-end; /* Căn phần tử xuống cuối */
 
-  gap: 28px;
+  gap: 28px; /* Tạo khoảng cách giữa bộ lọc */
 
-  padding: 24px 27px;
+  padding: 24px 27px;  /* Khoảng cách bên trong */
+  margin-bottom: 16px;
 
   background: #ffffff;
 }
 
 
 /* Mỗi ô lọc */
+
 .ds-control {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Xếp từ trên xuống */
 
-  gap: 7px;
+  gap: 7px;  /* Khoảng cách label và input */
 
-  flex-shrink: 0;
+  flex-shrink: 0;  /* Không cho nhóm bị co */
 }
-
+/* Label của bộ lọc */
 .ds-control label {
   display: block;
 
-  padding-left: 0;
-  text-align: left;
+  padding-left: 0; /* Bỏ khoảng cách bên trái */
+  text-align: left;   /* Căn chữ bên trái */
 
   font-size: 13px;
   font-weight: 600;
@@ -259,16 +261,17 @@
   font-size: 14px;
   font-weight: 600;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center; /* Căn giữa theo chiều dọc */
+  justify-content: center;  /* Căn giữa theo chiều ngang */
   gap: 8px; /* Khoảng cách giữa icon và chữ Tìm kiếm */
-  cursor: pointer;
-  white-space: nowrap;
+  cursor: pointer; /* Hiển thị con trỏ */
+  white-space: nowrap; /* Không cho xuống dòng */
   box-shadow: 0 6px 16px rgba(5, 102, 255, 0.28);
   transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 /* Kích thước và căn chỉnh icon bên trong nút */
+/* Icon tìm kiếm */
 .ds-btn-search svg {
   width: 16px;
   height: 16px;
@@ -277,13 +280,13 @@
 
 /* Hiệu ứng khi rê chuột */
 .ds-btn-search:hover:not(:disabled) {
-  background: #0057e6;
+  background: #0057e6; 
   box-shadow: 0 7px 18px rgba(5, 102, 255, 0.34);
 }
 
 /* Hiệu ứng khi bấm */
 .ds-btn-search:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(1px); /* Dịch nút xuống */
   box-shadow: 0 3px 8px rgba(5, 102, 255, 0.28);
 }
 
@@ -320,19 +323,20 @@
    KHU VỰC BẢNG
 ========================================================= */
 .ds-row {
-  width: 100%;
+  width: 100%; /* Chiếm toàn bộ chiều rộng */
 
-  overflow-x: auto;
+  overflow-x: auto;   /* Cho phép cuộn ngang */
 
-  border-top: 1px solid var(--ds-line);
+  border-top: 1px solid var(--ds-line);  /* Tạo viền phía trên */
+  margin-top: 16px;
 }
-
+/* Bảng dữ liệu */
 .ds-row table {
   width: 100%;
 
-  border-collapse: collapse;
+  border-collapse: collapse;  /* Gộp đường viền */
 
-  table-layout: fixed;
+  table-layout: fixed; /* Cố định độ rộng cột */
 }
 
 
@@ -344,7 +348,7 @@
 
   background: var(--ds-thead-bg);
 
-  border-bottom: 1px solid var(--ds-line);
+  border-bottom: 1px solid var(--ds-line); /* Viền phía dưới */
 
   font-size: 11px;
   font-weight: 700;
@@ -355,31 +359,31 @@
 
   color: #5f7396;
 }
-
+/* Ô tiêu đề */
 .ds-thead th {
   height: 48px;
 
-  padding: 0 20px;
+  padding: 0 20px; /* Khoảng cách hai bên */
 
-  text-align: left;
+  text-align: left; /* Căn chữ trái */
 
   white-space: nowrap;
 }
-
+/* Cột STT */
 .ds-thead th:first-child {
-  width: 90px;
+  width: 90px;  /* Chiều rộng cột */
   text-align: center;
 }
-
+/* Cột tên cảm biến */
 .ds-thead th:nth-child(2) {
   width: 34%;
 }
-
+/* Cột giá trị */
 .ds-thead th:nth-child(3) {
-  width: 24%;
+  width: 24%; /* Chiếm 24% bảng */
   text-align: center;
 }
-
+/* Cột thời gian */
 .ds-thead th:nth-child(4) {
   width: 28%;
   text-align: center;
@@ -389,22 +393,23 @@
 /* =========================================================
    BODY BẢNG
 ========================================================= */
+/* Hàng dữ liệu */
 .ds-tbody tr {
-  height: 62px;
+  height: 62px;  /* Chiều cao hàng */
 
   border-bottom: 1px solid #edf2fa;
 
   transition: background 0.12s ease;
 }
-
+/* Hàng chẵn */
 .ds-tbody tr:nth-child(even) {
   background: var(--ds-row-alt);
 }
-
+/* Hàng khi hover */
 .ds-tbody tr:hover {
   background: #eef5ff;
 }
-
+/* Ô dữ liệu */
 .ds-tbody td {
   padding: 0 20px;
 
@@ -412,7 +417,7 @@
 
   color: var(--ds-text-strong);
 
-  vertical-align: middle;
+  vertical-align: middle;  /* Căn giữa theo chiều dọc */
 }
 
 
@@ -467,7 +472,7 @@
 
   font-size: 13px;
 
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;  /* Căn đều chữ số */
 
   white-space: nowrap;
 }
@@ -476,6 +481,8 @@
 /* =========================================================
    TRỐNG / LOADING
 ========================================================= */
+/* Khu vực trạng thái */
+
 .ds-empty {
   height: 170px;
 
@@ -511,7 +518,7 @@
 
   background: var(--ds-row-alt);
 
-  border-top: 1px solid var(--ds-line);
+  border-top: 1px solid var(--ds-line); /* Viền phía trên */
 }
 
 
@@ -582,7 +589,7 @@
   color: #0f1a2e;
 
   cursor: pointer;
-
+ /* Hiệu ứng hover */
   transition:
     background 0.12s ease,
     border-color 0.12s ease;
@@ -595,7 +602,7 @@
 }
 
 .ds-pg-btn:disabled {
-  background: transparent;
+  background: transparent; /* Nền trong suốt */
 
   color: #a9b8d0;
 
@@ -620,6 +627,7 @@
 /* =========================================================
    FOCUS
 ========================================================= */
+/* Nút khi dùng bàn phím */
 .ds-pg-btn:focus-visible,
 .ds-btn-search:focus-visible {
   outline: 3px solid rgba(5, 102, 255, 0.25);
@@ -668,63 +676,39 @@
 }
 
 
-/* =========================================================
-   MOBILE
-========================================================= */
-@media (max-width: 600px) {
-  .ds-page {
-    padding: 16px 12px 35px;
-  }
-
-  .ds-title {
-    margin-bottom: 12px;
-
-    font-size: 12.5px;
-  }
-
-  .ds-card {
-    border-radius: 16px;
-  }
-
-  .ds-filters {
-    padding: 18px 16px;
-
-    gap: 15px;
-  }
-
-  .ds-control:nth-child(1),
-  .ds-control:nth-child(2),
-  .ds-control:nth-child(3) {
-    width: 100%;
-  }
-
-  .ds-tfoot {
-    min-height: auto;
-
-    flex-direction: column;
-
-    gap: 12px;
-
-    padding: 14px 16px;
-  }
-
-  .ds-summary {
-    position: static;
-
-    order: 1;
-  }
-
-  .ds-pager {
-    order: 2;
-  }
+/* Cho phép toàn bộ trang cuộn dọc khi nội dung dài */
+html,
+body,
+#root {
+  min-height: 100%;
+  height: auto;
+  overflow-y: auto;
 }
 
+/* Thời gian và nút sao chép */
+.ds-time-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
 
-/* =========================================================
-   GIẢM CHUYỂN ĐỘNG
-========================================================= */
-@media (prefers-reduced-motion: reduce) {
-  .ds-page * {
-    transition: none !important;
-  }
+/* Nút sao chép nhỏ */
+.ds-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.ds-copy-btn:hover {
+  background: #eaf4ff;
+  color: #2563eb;
 }

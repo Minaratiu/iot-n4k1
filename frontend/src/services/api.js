@@ -1,40 +1,110 @@
+
 const API_BASE_URL = "http://localhost:8080";
 
-// Lấy JWT đã lưu sau khi đăng nhập
+// ======================================================
+// 1. JWT
+// ======================================================
+
 function getToken() {
   return localStorage.getItem("token");
 }
 
-// Hàm dùng chung để gọi API cần đăng nhập
+// ======================================================
+// 2. HÀM GỌI API DÙNG CHUNG
+// ======================================================
+
 async function request(path, options = {}) {
   const token = getToken();
 
   const headers = {
     ...(options.headers || {}),
-    "Content-Type": "application/json",
   };
+
+  // Không ghi đè Content-Type nếu đang gửi FormData.
+  const isFormData =
+    typeof FormData !== "undefined" &&
+    options.body instanceof FormData;
+
+  if (!isFormData && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response;
 
-  const data = await response.json();
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    console.error("Không kết nối được backend:", {
+      path,
+      message: error.message,
+    });
 
-  if (!response.ok || data.success === false) {
-    throw new Error(data.message || `HTTP ${response.status}`);
+    throw new Error(
+      "Không kết nối được backend. Hãy kiểm tra Spring Boot và cổng 8080."
+    );
+  }
+
+  // Đọc text trước để tránh lỗi khi response rỗng.
+  const responseText = await response.text();
+
+  let data = null;
+
+  if (responseText.trim() !== "") {
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      console.error("Backend trả dữ liệu không phải JSON:", {
+        path,
+        status: response.status,
+        responseText,
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status} ${response.statusText}`
+        );
+      }
+
+      throw new Error(
+        `Backend trả dữ liệu không hợp lệ (HTTP ${response.status})`
+      );
+    }
+  }
+
+  // Xử lý lỗi HTTP kể cả khi response không có body.
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error ||
+      `HTTP ${response.status} ${response.statusText}`;
+
+    console.error("API request thất bại:", {
+      path,
+      status: response.status,
+      message,
+    });
+
+    throw new Error(message);
+  }
+
+  // Xử lý lỗi nghiệp vụ theo cấu trúc ApiResponse của backend.
+  if (data?.success === false) {
+    throw new Error(data.message || "Yêu cầu thất bại");
   }
 
   return data;
 }
 
-// ==========================================
-// NHÓM 4 — ĐĂNG NHẬP / ĐĂNG XUẤT
-// ==========================================
+// ======================================================
+// NHÓM 1 — ĐĂNG NHẬP / ĐĂNG XUẤT
+// ======================================================
 
 // API-01: Đăng nhập
 export async function login(username, password) {
@@ -47,12 +117,32 @@ export async function login(username, password) {
       username,
       password,
     }),
+  }).catch((error) => {
+    console.error("Lỗi kết nối khi đăng nhập:", error.message);
+
+    throw new Error(
+      "Không kết nối được backend. Hãy kiểm tra Spring Boot."
+    );
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  let data = null;
 
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Đăng nhập thất bại");
+  if (responseText.trim()) {
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      throw new Error(
+        `Response đăng nhập không hợp lệ (HTTP ${response.status})`
+      );
+    }
+  }
+
+  if (!response.ok || data?.success === false || !data) {
+    throw new Error(
+      data?.message ||
+      `Đăng nhập thất bại (HTTP ${response.status})`
+    );
   }
 
   return data;
@@ -65,53 +155,63 @@ export async function logout() {
   });
 }
 
-// ==========================================
-// NHÓM 1 — DASHBOARD
-// ==========================================
+// ======================================================
+// NHÓM 2 — DASHBOARD / CẢM BIẾN
+// ======================================================
 
-// API-03: Lấy cảm biến mới nhất
+// API-03: Lấy dữ liệu cảm biến mới nhất
 export async function getLatestSensors() {
   return request("/dashboard/sensors/latest");
 }
 
-// API-04: Lấy dữ liệu vẽ 3 biểu đồ
+// API-04: Lấy dữ liệu biểu đồ
 export async function getChartData(limit = 20) {
-  return request(`/dashboard/sensors/chart?limit=${limit}`);
+  return request(
+    `/dashboard/sensors/chart?limit=${encodeURIComponent(limit)}`
+  );
 }
 
-// ==========================================
-// NHÓM 2 — THIẾT BỊ + LED
-// ==========================================
+// ======================================================
+// NHÓM 3 — THIẾT BỊ / LED
+// ======================================================
 
 // API-09: Lấy danh sách thiết bị
 export async function getDevices() {
   return request("/devices");
 }
 
-// API-10: Điều khiển thiết bị (Bật/Tắt)
+// API-10: Gửi lệnh bật/tắt thiết bị
+// action phải là "on" hoặc "off".
 export async function controlDevice(deviceId, action) {
-  return request(`/devices/${deviceId}/control`, {
-    method: "POST",
-    body: JSON.stringify({
-      action, // 'on' hoặc 'off'
-    }),
-  });
+  if (!["on", "off"].includes(action)) {
+    throw new Error("Action phải là 'on' hoặc 'off'");
+  }
+
+  return request(
+    `/devices/${encodeURIComponent(deviceId)}/control`,
+    {
+      method: "POST",
+      body: JSON.stringify({ action }),
+    }
+  );
 }
 
 // API-11: Cập nhật trạng thái thiết bị
 export async function updateDeviceStatus(deviceId, status) {
-  return request(`/devices/${deviceId}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      status,
-    }),
-  });
+  return request(
+    `/devices/${encodeURIComponent(deviceId)}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }
+  );
 }
 
-// ==========================================
-// NHÓM 3 — LỊCH SỬ BẬT/TẮT (ACTION HISTORY)
-// ==========================================
-// API-12: Lấy lịch sử bật/tắt thiết bị
+// ======================================================
+// NHÓM 4 — LỊCH SỬ BẬT/TẮT
+// ======================================================
+
+// API-12: Lấy lịch sử điều khiển thiết bị
 export async function getDeviceHistory({
   deviceId = "",
   action = "",
@@ -139,9 +239,9 @@ export async function getDeviceHistory({
   return request(`/devices/history?${query.toString()}`);
 }
 
-// ==========================================
-// MỞ RỘNG — PROFILE
-// ==========================================
+// ======================================================
+// NHÓM 5 — PROFILE
+// ======================================================
 
 // API-14: Lấy thông tin cá nhân
 export async function getProfile() {
@@ -167,28 +267,21 @@ export async function changePassword(oldPassword, newPassword) {
   });
 }
 
-// API-17: Đổi ảnh đại diện
+// API-17: Upload ảnh đại diện
 export async function uploadAvatar(formData) {
-  const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/profile/avatar`, {
+  if (!(formData instanceof FormData)) {
+    throw new Error("Dữ liệu upload phải là FormData");
+  }
+
+  return request("/profile/avatar", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      // Không set Content-Type để trình duyệt tự thêm boundary cho FormData
-    },
     body: formData,
   });
-
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Tải ảnh thất bại");
-  }
-  return data;
 }
 
-// ==========================================
-// NHÓM 5 — LỊCH SỬ CẢM BIẾN
-// ==========================================
+// ======================================================
+// NHÓM 6 — LỊCH SỬ CẢM BIẾN
+// ======================================================
 
 // API-18: Lấy lịch sử dữ liệu cảm biến
 export async function getDataSensors(params = {}) {
@@ -214,8 +307,8 @@ export async function getDataSensors(params = {}) {
     query.append("max_value", params.max_value);
   }
 
-  query.append("page", params.page || 1);
-  query.append("limit", params.limit || 20);
+  query.append("page", params.page ?? 1);
+  query.append("limit", params.limit ?? 20);
   query.append("sort", params.sort || "desc");
 
   return request(`/datasensor?${query.toString()}`);
