@@ -1,3 +1,4 @@
+//thembattat3den
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -180,7 +181,7 @@ export async function getDevices() {
   return request("/devices");
 }
 
-// API-10: Gửi lệnh bật/tắt thiết bị
+// API-10: Gửi lệnh bật/tắt một thiết bị
 // action phải là "on" hoặc "off".
 export async function controlDevice(deviceId, action) {
   if (!["on", "off"].includes(action)) {
@@ -194,6 +195,27 @@ export async function controlDevice(deviceId, action) {
       body: JSON.stringify({ action }),
     }
   );
+}
+
+// ======================================================
+// API-10B: ĐIỀU KHIỂN ĐỒNG THỜI CẢ 3 ĐÈN
+// ======================================================
+
+// Hàm mới: Bật hoặc tắt tất cả LED1, LED2 và LED3.
+// action = "on"  : bật cả 3 đèn.
+// action = "off" : tắt cả 3 đèn.
+//
+// Backend nhận request tại POST /devices/control-all.
+// Hàm request() tự động đính kèm JWT và xử lý lỗi.
+export async function controlAllDevices(action) {
+  if (!["on", "off"].includes(action)) {
+    throw new Error("Action phải là 'on' hoặc 'off'");
+  }
+
+  return request("/devices/control-all", {
+    method: "POST",
+    body: JSON.stringify({ action }),
+  });
 }
 
 // API-11: Cập nhật trạng thái thiết bị

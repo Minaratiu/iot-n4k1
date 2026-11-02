@@ -1,3 +1,5 @@
+//thembattat3den
+
 package com.iot.backend.mqtt;
 
 import com.iot.backend.entity.Datasensor;
@@ -138,6 +140,7 @@ public class MqttService {
 
             // Ví dụ response:
             // {"device":"LED1","action":"ON","status":"SUCCESS"}
+            // {"device":"ALL","action":"ON","status":"SUCCESS"}
 
             String device = null;
             String status = null;
@@ -151,7 +154,11 @@ public class MqttService {
 
             for (String field : fields) {
 
-                String[] keyValue = field.split(":");
+                String[] keyValue = field.split(":", 2);
+
+                if (keyValue.length < 2) {
+                    continue;
+                }
 
                 String key = keyValue[0].trim();
                 String value = keyValue[1].trim();
@@ -173,7 +180,56 @@ public class MqttService {
                 return;
             }
 
-            // Xác định device ID
+            // Xác định trạng thái thành công hoặc thất bại
+            String finalStatus =
+                    "SUCCESS".equalsIgnoreCase(status)
+                            ? "success"
+                            : "failed";
+
+            // =====================================================
+            // CHỨC NĂNG MỚI: XỬ LÝ PHẢN HỒI KHI ĐIỀU KHIỂN CẢ 3 ĐÈN
+            // ESP8266 gửi device = "ALL" sau khi nhận lệnh bật/tắt cả 3.
+            // Khi đó cập nhật trạng thái cho cả 3 bản ghi đang loading.
+            // =====================================================
+
+            if ("ALL".equalsIgnoreCase(device)) {
+
+                System.out.println(
+                        "Nhận phản hồi điều khiển tất cả đèn"
+                );
+
+                // Duyệt qua 3 thiết bị có ID từ 1 đến 3
+                for (int deviceId = 1; deviceId <= 3; deviceId++) {
+
+                    final int currentDeviceId = deviceId;
+
+                    actionRepository
+                            .findTopByDevice_IdDeviceAndStatusOrderByCreatedAtDesc(
+                                    currentDeviceId,
+                                    "loading"
+                            )
+                            .ifPresent(action -> {
+
+                                action.setStatus(finalStatus);
+
+                                actionRepository.save(action);
+
+                                System.out.println(
+                                        "LED" + currentDeviceId
+                                                + " ACTION STATUS UPDATED: loading -> "
+                                                + finalStatus
+                                );
+                            });
+                }
+
+                // Đã xử lý phản hồi ALL, không chạy tiếp phần xử lý LED riêng
+                return;
+            }
+
+            // =====================================================
+            // GIỮ NGUYÊN CHỨC NĂNG CŨ: XỬ LÝ TỪNG ĐÈN RIÊNG LẺ
+            // =====================================================
+
             Integer deviceId = null;
 
             switch (device) {
@@ -197,8 +253,6 @@ public class MqttService {
                     return;
             }
 
-            String finalStatus = status;
-
             actionRepository
                     .findTopByDevice_IdDeviceAndStatusOrderByCreatedAtDesc(
                             deviceId,
@@ -206,26 +260,14 @@ public class MqttService {
                     )
                     .ifPresent(action -> {
 
-                        if ("SUCCESS".equalsIgnoreCase(finalStatus)) {
+                        action.setStatus(finalStatus);
 
-                            action.setStatus("success");
+                        actionRepository.save(action);
 
-                            actionRepository.save(action);
-
-                            System.out.println(
-                                    "ACTION STATUS UPDATED: loading -> success"
-                            );
-
-                        } else {
-
-                            action.setStatus("failed");
-
-                            actionRepository.save(action);
-
-                            System.out.println(
-                                    "ACTION STATUS UPDATED: loading -> failed"
-                            );
-                        }
+                        System.out.println(
+                                "ACTION STATUS UPDATED: loading -> "
+                                        + finalStatus
+                        );
                     });
 
         } catch (Exception e) {
@@ -364,6 +406,13 @@ public class MqttService {
             String action) {
 
         try {
+
+            // =====================================================
+            // CHỨC NĂNG MỚI: HỖ TRỢ GỬI LỆNH ĐIỀU KHIỂN CẢ 3 ĐÈN
+            // mqttKey = "all" sẽ tạo payload {"all":"on"} hoặc
+            // {"all":"off"} để ESP8266 xử lý đồng thời cả 3 đèn.
+            // Các lệnh led1, led2, led3 vẫn giữ nguyên như trước.
+            // =====================================================
 
             String payload =
                     "{"

@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Copy } from "lucide-react";
-
 import {
   getDeviceHistory,
   getDevices,
 } from "../services/api";
-
 import "./DeviceHistory.css";
 
 // ======================================================
@@ -14,20 +12,16 @@ import "./DeviceHistory.css";
 
 // Số bản ghi lấy trong mỗi request backend
 const FETCH_SIZE = 100;
-
 // Số bản ghi hiển thị trên mỗi trang
 const PAGE_SIZE_OPTIONS = [5, 10, 15];
-
 // Trạng thái hiển thị trên giao diện
 const STATUS_OPTIONS = [
   { value: "LOADING", label: "LOADING" },
   { value: "SUCCESS", label: "SUCCEEDED" },
   { value: "FAILED", label: "FAILED" },
 ];
-
 // Các hành động điều khiển thiết bị
 const ACTION_OPTIONS = ["ON", "OFF"];
-
 // Bộ lọc ban đầu
 const INITIAL_FILTERS = {
   device: "all",
@@ -42,24 +36,19 @@ const INITIAL_FILTERS = {
 
 function formatTime(value) {
   if (!value) return "";
-
   // Jackson có thể trả LocalDateTime dạng mảng
   if (Array.isArray(value)) {
     const [y, mo, d, h = 0, mi = 0, s = 0] = value;
     const pad = (n) => String(n).padStart(2, "0");
-
     return `${y}-${pad(mo)}-${pad(d)} ${pad(h)}:${pad(mi)}:${pad(s)}`;
   }
-
   // Backend trả thời gian dạng chuỗi
   let str = String(value)
     .replace("T", " ")
     .slice(0, 19);
-
   if (str.length === 16) {
     str += ":00";
   }
-
   return str;
 }
 
@@ -70,19 +59,15 @@ function formatTime(value) {
 function getDisplayStatus(action, backendStatus) {
   const a = String(action ?? "").toUpperCase();
   const s = String(backendStatus ?? "").toUpperCase();
-
   if (s === "LOADING") {
     return "LOADING";
   }
-
   if (s === "SUCCESS" || s === "SUCCEEDED") {
     return "SUCCEEDED";
   }
-
   if (s === "FAILED" || s === "FAILURE") {
     return "FAILED";
   }
-
   return s || (a ? "UNKNOWN" : "");
 }
 
@@ -92,17 +77,13 @@ function getDisplayStatus(action, backendStatus) {
 
 async function fetchAllHistory({ device, action, status }) {
   const all = [];
-
   let pageIndex = 0;
   let totalPages = 1;
-
   // Chuyển hành động sang định dạng backend
   const backendAction =
     action === "all" ? "" : action.toLowerCase();
-
   // Chuyển trạng thái sang định dạng backend
   let backendStatus = "";
-
   if (status === "LOADING") {
     backendStatus = "loading";
   } else if (status === "SUCCESS") {
@@ -110,7 +91,6 @@ async function fetchAllHistory({ device, action, status }) {
   } else if (status === "FAILED") {
     backendStatus = "failed";
   }
-
   // Lấy từng trang backend, tối đa 100 bản ghi/request
   do {
     const res = await getDeviceHistory({
@@ -120,25 +100,19 @@ async function fetchAllHistory({ device, action, status }) {
       page: pageIndex,
       size: FETCH_SIZE,
     });
-
     const data = res?.data;
-
     all.push(...(data?.content ?? []));
-
     totalPages = data?.totalPages ?? 1;
     pageIndex++;
   } while (pageIndex < totalPages && pageIndex < 50);
-
   // Chuẩn hóa dữ liệu trả về cho giao diện
   return all.map((record) => {
     const actionValue = String(
       record.action ?? ""
     ).toUpperCase();
-
     const backendStatusValue = String(
       record.status ?? ""
     ).toUpperCase();
-
     return {
       id: record.id,
       deviceId: record.deviceId,
@@ -160,19 +134,16 @@ async function fetchAllHistory({ device, action, status }) {
 
 function friendlyError(error) {
   const message = String(error?.message ?? "");
-
   if (
     /HTTP (401|403)|Unexpected end of JSON/i.test(message)
   ) {
     return "Chưa đăng nhập hoặc phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.";
   }
-
   if (
     /Failed to fetch|NetworkError|Load failed/i.test(message)
   ) {
     return "Không kết nối được máy chủ. Hãy kiểm tra backend (cổng 8080) và cấu hình CORS.";
   }
-
   return message || "Đã có lỗi xảy ra.";
 }
 
@@ -215,7 +186,6 @@ function tagClass(value) {
   if (value === "SUCCEEDED") return "dh-success";
   if (value === "FAILED") return "dh-failed";
   if (value === "LOADING") return "dh-loading";
-
   return "";
 }
 
@@ -282,17 +252,13 @@ export default function DeviceHistory() {
   // Bộ lọc người dùng đang nhập
   const [draft, setDraft] = useState(INITIAL_FILTERS);
   const [timeError, setTimeError] = useState("");
-
   // Bộ lọc đã áp dụng
   const [filters, setFilters] = useState(INITIAL_FILTERS);
-
   // Phân trang giao diện
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
-
   // Danh sách thiết bị
   const [devices, setDevices] = useState([]);
-
   // Dữ liệu lịch sử và trạng thái tải
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -304,7 +270,6 @@ export default function DeviceHistory() {
 
   async function handleCopyTime(time) {
     if (!time) return;
-
     try {
       await navigator.clipboard.writeText(time);
     } catch (err) {
@@ -318,11 +283,9 @@ export default function DeviceHistory() {
 
   useEffect(() => {
     let cancelled = false;
-
     getDevices()
       .then((res) => {
         if (cancelled) return;
-
         setDevices(
           (res?.data ?? []).map((device) => ({
             id: device.id,
@@ -334,7 +297,6 @@ export default function DeviceHistory() {
         if (cancelled) return;
         setDevices([]);
       });
-
     return () => {
       cancelled = true;
     };
@@ -346,25 +308,20 @@ export default function DeviceHistory() {
 
   useEffect(() => {
     let cancelled = false;
-
     setLoading(true);
     setError("");
-
     fetchAllHistory(filters)
       .then((list) => {
         if (cancelled) return;
-
         setRecords(list);
         setLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
-
         setRecords([]);
         setError(friendlyError(err));
         setLoading(false);
       });
-
     return () => {
       cancelled = true;
     };
@@ -378,7 +335,6 @@ export default function DeviceHistory() {
     if (filters.time === "") {
       return records;
     }
-
     return records.filter((record) =>
       record.time.startsWith(filters.time)
     );
@@ -389,16 +345,12 @@ export default function DeviceHistory() {
   // ====================================================
 
   const total = filtered.length;
-
   const totalPages = Math.max(
     1,
     Math.ceil(total / pageSize)
   );
-
   const currentPage = Math.min(page, totalPages);
-
   const start = (currentPage - 1) * pageSize;
-
   const rows = filtered.slice(
     start,
     start + pageSize
@@ -413,7 +365,6 @@ export default function DeviceHistory() {
       ...previous,
       [field]: value,
     }));
-
     if (field === "time") {
       setTimeError("");
     }
@@ -425,9 +376,7 @@ export default function DeviceHistory() {
 
   function handleSearch() {
     setTimeError("");
-
     const timeQuery = normalizeTimeInput(draft.time);
-
     if (
       timeQuery !== "" &&
       !TIME_PATTERN.test(timeQuery)
@@ -437,19 +386,27 @@ export default function DeviceHistory() {
       );
       return;
     }
-
     setFilters({
       ...draft,
       time: padTimeParts(timeQuery),
     });
-
     setPage(1);
   }
+  // ====================================================
 
   // ====================================================
+  // XỬ LÝ NHẤN ENTER ĐỂ TÌM KIẾM
+  // ====================================================
+
+  function handleFilterKeyDown(event) {
+    // Khi nhấn Enter ở bất kỳ bộ lọc nào, gọi hàm tìm kiếm hiện có
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSearch();
+    }
+  }
   // ĐỔI SỐ BẢN GHI MỖI TRANG
   // ====================================================
-
   function handlePageSizeChange(event) {
     setPageSize(Number(event.target.value));
     setPage(1);
@@ -461,7 +418,6 @@ export default function DeviceHistory() {
 
   function handlePrevious() {
     if (currentPage <= 1 || loading) return;
-
     setPage((previous) => Math.max(1, previous - 1));
   }
 
@@ -471,7 +427,6 @@ export default function DeviceHistory() {
 
   function handleNext() {
     if (currentPage >= totalPages || loading) return;
-
     setPage((previous) =>
       Math.min(totalPages, previous + 1)
     );
@@ -489,14 +444,12 @@ export default function DeviceHistory() {
           Lịch sử bật tắt thiết bị
         </h1>
       </div>
-
       {/* BỘ LỌC */}
       <div className="dh-filter-card">
         <div className="dh-filter-grid">
           {/* THIẾT BỊ */}
           <div className="dh-filter-item">
             <label htmlFor="dh-device">Thiết bị</label>
-
             <select
               id="dh-device"
               className={
@@ -505,12 +458,12 @@ export default function DeviceHistory() {
                   : ""
               }
               value={draft.device}
+              onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
               onChange={(event) =>
                 handleDraftChange("device", event.target.value)
               }
             >
               <option value="all">Tất cả</option>
-
               {devices.map((device) => (
                 <option key={device.id} value={device.id}>
                   {device.name}
@@ -518,11 +471,9 @@ export default function DeviceHistory() {
               ))}
             </select>
           </div>
-
           {/* HÀNH ĐỘNG */}
           <div className="dh-filter-item">
             <label htmlFor="dh-action">Hành động</label>
-
             <select
               id="dh-action"
               className={
@@ -531,12 +482,12 @@ export default function DeviceHistory() {
                   : ""
               }
               value={draft.action}
+              onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
               onChange={(event) =>
                 handleDraftChange("action", event.target.value)
               }
             >
               <option value="all">Tất cả</option>
-
               {ACTION_OPTIONS.map((action) => (
                 <option key={action} value={action}>
                   {action}
@@ -544,11 +495,9 @@ export default function DeviceHistory() {
               ))}
             </select>
           </div>
-
           {/* TRẠNG THÁI */}
           <div className="dh-filter-item">
             <label htmlFor="dh-status">Trạng thái</label>
-
             <select
               id="dh-status"
               className={
@@ -557,12 +506,12 @@ export default function DeviceHistory() {
                   : ""
               }
               value={draft.status}
+              onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
               onChange={(event) =>
                 handleDraftChange("status", event.target.value)
               }
             >
               <option value="all">Tất cả</option>
-
               {STATUS_OPTIONS.map((status) => (
                 <option
                   key={status.value}
@@ -573,11 +522,9 @@ export default function DeviceHistory() {
               ))}
             </select>
           </div>
-
           {/* THỜI GIAN */}
           <div className="dh-filter-item">
             <label htmlFor="dh-time">Thời gian</label>
-
             <input
               id="dh-time"
               type="text"
@@ -586,20 +533,14 @@ export default function DeviceHistory() {
               onChange={(event) =>
                 handleDraftChange("time", event.target.value)
               }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleSearch();
-                }
-              }}
+              onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
             />
-
             {timeError && (
               <div className="dh-time-error">
                 {timeError}
               </div>
             )}
           </div>
-
           {/* NÚT TÌM KIẾM */}
           <div className="dh-filter-actions">
             <button
@@ -614,14 +555,12 @@ export default function DeviceHistory() {
           </div>
         </div>
       </div>
-
       {/* THÔNG BÁO LỖI */}
       {error && (
         <div className="dh-error">
           {error}
         </div>
       )}
-
       {/* BẢNG LỊCH SỬ */}
       <div className="dh-table-card">
         {loading ? (
@@ -645,7 +584,6 @@ export default function DeviceHistory() {
                   <th>Thời gian</th>
                 </tr>
               </thead>
-
               <tbody>
                 {rows.map((record, index) => (
                   <tr key={record.id}>
@@ -654,14 +592,12 @@ export default function DeviceHistory() {
                         {start + index + 1}
                       </span>
                     </td>
-
                     <td>
                       <span className="dh-device-name">
                         {record.deviceName ||
                           `Thiết bị ${record.deviceId}`}
                       </span>
                     </td>
-
                     <td>
                       <span
                         className={`dh-tag ${tagClass(record.action)}`}
@@ -669,7 +605,6 @@ export default function DeviceHistory() {
                         {record.action}
                       </span>
                     </td>
-
                     <td>
                       <span
                         className={`dh-tag ${tagClass(record.status)}`}
@@ -678,18 +613,15 @@ export default function DeviceHistory() {
                           record.status}
                       </span>
                     </td>
-
                     <td>
                       <span className="dh-device-name">
                         {record.userName}
                       </span>
                     </td>
-
                     {/* THỜI GIAN + NÚT SAO CHÉP */}
                     <td>
                       <div className="dh-time-cell">
                         <span>{record.time}</span>
-
                         <button
                           type="button"
                           className="dh-copy-btn"
@@ -709,14 +641,12 @@ export default function DeviceHistory() {
             </table>
           </div>
         )}
-
         {/* FOOTER / PHÂN TRANG */}
         {!loading && (
           <div className="dh-table-footer">
             {/* SỐ BẢN GHI VÀ TỔNG */}
             <div className="dh-summary">
               <span>Hiển thị</span>
-
               <select
                 id="dh-page-size"
                 className="dh-page-size"
@@ -730,10 +660,8 @@ export default function DeviceHistory() {
                   </option>
                 ))}
               </select>
-
               <span>bản ghi / {total} bản ghi</span>
             </div>
-
             {/* NÚT PHÂN TRANG */}
             <div className="dh-pagination">
               <button
@@ -744,12 +672,10 @@ export default function DeviceHistory() {
                 <ChevronIcon direction="left" />
                 Trước
               </button>
-
               <span>
                 Trang {total === 0 ? 0 : currentPage} /{" "}
                 {total === 0 ? 0 : totalPages}
               </span>
-
               <button
                 type="button"
                 onClick={handleNext}
@@ -769,4 +695,3 @@ export default function DeviceHistory() {
     </div>
   );
 }
- 

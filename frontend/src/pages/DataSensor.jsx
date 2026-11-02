@@ -46,7 +46,6 @@ function padTimeParts(value) {
 
   const datePart = parts[0];
   const timePart = parts[1];
-
   const dateParts = datePart.split("-");
 
   if (dateParts.length !== 3) {
@@ -56,7 +55,6 @@ function padTimeParts(value) {
   const year = dateParts[0];
   const month = dateParts[1].padStart(2, "0");
   const day = dateParts[2].padStart(2, "0");
-
   const newDate = `${year}-${month}-${day}`;
 
   if (!timePart) {
@@ -64,7 +62,6 @@ function padTimeParts(value) {
   }
 
   const timeParts = timePart.split(":");
-
   const newTime = timeParts
     .map((part) => part.padStart(2, "0"))
     .join(":");
@@ -125,9 +122,7 @@ export default function DataSensor() {
 
   const handleCopyTime = async (value) => {
     try {
-      await navigator.clipboard.writeText(
-        formatRecordedAt(value)
-      );
+      await navigator.clipboard.writeText(formatRecordedAt(value));
     } catch (err) {
       console.error("Không thể sao chép thời gian:", err);
     }
@@ -165,18 +160,11 @@ export default function DataSensor() {
         throw new Error("Tháng phải từ 01 đến 12.");
       }
 
-      const lastDay = new Date(
-        Number(year),
-        monthNumber,
-        0
-      ).getDate();
+      const lastDay = new Date(Number(year), monthNumber, 0).getDate();
 
       return {
         from: `${year}-${month}-01 00:00:00`,
-        to: `${year}-${month}-${String(lastDay).padStart(
-          2,
-          "0"
-        )} 23:59:59`,
+        to: `${year}-${month}-${String(lastDay).padStart(2, "0")} 23:59:59`,
       };
     }
 
@@ -207,7 +195,6 @@ export default function DataSensor() {
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(padded)) {
       const [date, time] = padded.split(" ");
       const [hour, minute] = time.split(":");
-
       const hourNumber = Number(hour);
       const minuteNumber = Number(minute);
 
@@ -229,7 +216,6 @@ export default function DataSensor() {
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(padded)) {
       const [date, time] = padded.split(" ");
       const [hour, minute, second] = time.split(":");
-
       const hourNumber = Number(hour);
       const minuteNumber = Number(minute);
       const secondNumber = Number(second);
@@ -313,9 +299,7 @@ export default function DataSensor() {
       setTotal(0);
       setTotalPages(0);
 
-      setError(
-        err.message || "Không thể lấy dữ liệu cảm biến."
-      );
+      setError(err.message || "Không thể lấy dữ liệu cảm biến.");
     } finally {
       setLoading(false);
     }
@@ -335,6 +319,21 @@ export default function DataSensor() {
 
   const handleSearch = () => {
     fetchData(1);
+  };
+
+  // ==========================================
+  // XỬ LÝ NHẤN ENTER ĐỂ TÌM KIẾM
+  // ==========================================
+
+  const handleFilterKeyDown = (event) => {
+    // Kiểm tra người dùng có nhấn phím Enter hay không
+    if (event.key === "Enter") {
+      // Ngăn hành vi mặc định của trình duyệt
+      event.preventDefault();
+
+      // Gọi hàm tìm kiếm hiện có
+      handleSearch();
+    }
   };
 
   // ==========================================
@@ -379,6 +378,7 @@ export default function DataSensor() {
               <select
                 value={sensorType}
                 onChange={(e) => setSensorType(e.target.value)}
+                onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
               >
                 <option value="">Tất cả</option>
 
@@ -399,6 +399,7 @@ export default function DataSensor() {
                 value={valueInput}
                 onChange={(e) => setValueInput(e.target.value)}
                 placeholder="Nhập giá trị"
+                onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
               />
             </div>
 
@@ -411,6 +412,7 @@ export default function DataSensor() {
                 value={timeInput}
                 onChange={(e) => setTimeInput(e.target.value)}
                 placeholder="YYYY-MM-DD HH:mm:ss"
+                onKeyDown={handleFilterKeyDown} // THÊM: Nhấn Enter để tìm kiếm
               />
             </div>
 
@@ -471,16 +473,12 @@ export default function DataSensor() {
                       {/* THỜI GIAN + NÚT SAO CHÉP */}
                       <td>
                         <div className="ds-time-cell">
-                          <span>
-                            {formatRecordedAt(row.recorded_at)}
-                          </span>
+                          <span>{formatRecordedAt(row.recorded_at)}</span>
 
                           <button
                             type="button"
                             className="ds-copy-btn"
-                            onClick={() =>
-                              handleCopyTime(row.recorded_at)
-                            }
+                            onClick={() => handleCopyTime(row.recorded_at)}
                             title="Sao chép thời gian"
                             aria-label="Sao chép thời gian"
                           >
@@ -542,11 +540,7 @@ export default function DataSensor() {
               <button
                 className="ds-pg-btn"
                 onClick={handleNext}
-                disabled={
-                  page >= totalPages ||
-                  totalPages === 0 ||
-                  loading
-                }
+                disabled={page >= totalPages || totalPages === 0 || loading}
               >
                 Sau &gt;
               </button>

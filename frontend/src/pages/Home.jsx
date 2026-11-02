@@ -1,3 +1,5 @@
+//thembattat3den
+
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -26,6 +28,9 @@ import {
   getDevices,
   getChartData,
   controlDevice,
+
+  // API mới: Điều khiển đồng thời cả 3 đèn
+  controlAllDevices,
 } from "../services/api";
 
 import "./Home.css";
@@ -39,184 +44,196 @@ function Home() {
   const [devices, setDevices] = useState([]);
   const [charts, setCharts] = useState([]);
 
- 
-
+  // Lưu ID thiết bị đang được điều khiển riêng lẻ
   const [controllingId, setControllingId] = useState(null);
 
-// =========================
-// LOAD DASHBOARD
-// =========================
-const chartLoadingRef = useRef(false);
-// =========================
-// LOAD SENSOR
-// =========================
+  // STATE MỚI: Kiểm tra trạng thái đang điều khiển cả 3 đèn
+  const [controllingAll, setControllingAll] = useState(false);
 
-const SENSOR_IDS = [1, 2, 3];
+  // =========================
+  // LOAD DASHBOARD
+  // =========================
 
-const withTimeout = (promise, ms = 5000) =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Quá thời gian chờ")),
-        ms
-      )
-    ),
-  ]);
+  const chartLoadingRef = useRef(false);
 
-const loadSensors = async () => {
-  try {
-    const results = await withTimeout(
-      Promise.all(
-        SENSOR_IDS.map((id) =>
-          getDataSensors({
-            page: 1,
-            limit: 1,
-            sort: "desc",
-            sensor_id: id,
-          })
+  // =========================
+  // LOAD SENSOR
+  // =========================
+
+  const SENSOR_IDS = [1, 2, 3];
+
+  const withTimeout = (promise, ms = 5000) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Quá thời gian chờ")),
+          ms
         )
-      )
-    );
+      ),
+    ]);
 
-    console.log("SENSOR DATA:", results);
+  const loadSensors = async () => {
+    try {
+      const results = await withTimeout(
+        Promise.all(
+          SENSOR_IDS.map((id) =>
+            getDataSensors({
+              page: 1,
+              limit: 1,
+              sort: "desc",
+              sensor_id: id,
+            })
+          )
+        )
+      );
 
-    const list = results
-      .map((result, index) => {
-        const item = result.data?.items?.[0];
+      console.log("SENSOR DATA:", results);
 
-        if (!item) {
-          return null;
-        }
+      const list = results
+        .map((result, index) => {
+          const item = result.data?.items?.[0];
 
-        return {
-          ...item,
-          sensor_id: SENSOR_IDS[index],
-        };
-      })
-      .filter(Boolean);
+          if (!item) {
+            return null;
+          }
 
-    setSensors(list);
+          return {
+            ...item,
+            sensor_id: SENSOR_IDS[index],
+          };
+        })
+        .filter(Boolean);
 
-  } catch (error) {
-    console.error("Lỗi tải sensor:", error);
-  }
-};
-// =========================
-// LOAD DEVICES
-// =========================
+      setSensors(list);
 
-const loadDevices = async () => {
-  try {
-    const response = await getDevices();
+    } catch (error) {
+      console.error("Lỗi tải sensor:", error);
+    }
+  };
 
-    setDevices(response.data || []);
+  // =========================
+  // LOAD DEVICES
+  // =========================
 
-  } catch (error) {
-    console.error("Lỗi tải thiết bị:", error);
-  }
-};
-// =========================
-// LOAD CHART
-// =========================
-const loadCharts = async () => {
-  // Không cho các request biểu đồ chạy chồng nhau
-  if (chartLoadingRef.current) {
-    return;
-  }
+  const loadDevices = async () => {
+    try {
+      const response = await getDevices();
 
-  chartLoadingRef.current = true;
+      setDevices(response.data || []);
 
-  try {
-    const chartResponse = await getChartData(50);
+    } catch (error) {
+      console.error("Lỗi tải thiết bị:", error);
+    }
+  };
 
-    setCharts(chartResponse.data || []);
-  } catch (error) {
-    console.error("Lỗi cập nhật biểu đồ:", error);
-  } finally {
-    chartLoadingRef.current = false;
-  }
-};
+  // =========================
+  // LOAD CHART
+  // =========================
 
-// =========================
-// INITIAL LOAD + CARD 2s
-// =========================
-// =========================
-// SENSOR 2 GIÂY
-// =========================
-useEffect(() => {
-  let stopped = false;
-  let timer = null;
-
-  const refreshSensors = async () => {
-    if (stopped) {
+  const loadCharts = async () => {
+    // Không cho các request biểu đồ chạy chồng nhau
+    if (chartLoadingRef.current) {
       return;
     }
+
+    chartLoadingRef.current = true;
 
     try {
-      await loadSensors();
+      const chartResponse = await getChartData(50);
+
+      setCharts(chartResponse.data || []);
     } catch (error) {
-      console.error("Lỗi refresh sensor:", error);
-    }
-
-    if (!stopped) {
-      timer = setTimeout(() => {
-        refreshSensors();
-      }, 2000);
+      console.error("Lỗi cập nhật biểu đồ:", error);
+    } finally {
+      chartLoadingRef.current = false;
     }
   };
 
-  // Lấy dữ liệu ngay khi mở Home
-  refreshSensors();
+  // =========================
+  // INITIAL LOAD + CARD 2s
+  // =========================
 
-  return () => {
-    stopped = true;
+  // =========================
+  // SENSOR 2 GIÂY
+  // =========================
 
-    if (timer) {
-      clearTimeout(timer);
-    }
-  };
-}, []);
+  useEffect(() => {
+    let stopped = false;
+    let timer = null;
 
-// =========================
-// DEVICE
-// =========================
+    const refreshSensors = async () => {
+      if (stopped) {
+        return;
+      }
 
-useEffect(() => {
-  loadDevices();
-}, []);
-// =========================
-// CHART 2 GIÂY
-// =========================
-useEffect(() => {
-  let stopped = false;
-  let timer = null;
+      try {
+        await loadSensors();
+      } catch (error) {
+        console.error("Lỗi refresh sensor:", error);
+      }
 
-  const refreshCharts = async () => {
-    if (stopped) {
-      return;
-    }
+      if (!stopped) {
+        timer = setTimeout(() => {
+          refreshSensors();
+        }, 2000);
+      }
+    };
 
-    await loadCharts();
+    // Lấy dữ liệu ngay khi mở Home
+    refreshSensors();
 
-    if (!stopped) {
-      timer = setTimeout(() => {
-        refreshCharts();
-      }, 2000);
-    }
-  };
+    return () => {
+      stopped = true;
 
-  // Tải biểu đồ ngay khi mở Home
-  refreshCharts();
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
 
-  return () => {
-    stopped = true;
+  // =========================
+  // DEVICE
+  // =========================
 
-    if (timer) {
-      clearTimeout(timer);
-    }
-  };
-}, []);
+  useEffect(() => {
+    loadDevices();
+  }, []);
+
+  // =========================
+  // CHART 2 GIÂY
+  // =========================
+
+  useEffect(() => {
+    let stopped = false;
+    let timer = null;
+
+    const refreshCharts = async () => {
+      if (stopped) {
+        return;
+      }
+
+      await loadCharts();
+
+      if (!stopped) {
+        timer = setTimeout(() => {
+          refreshCharts();
+        }, 2000);
+      }
+    };
+
+    // Tải biểu đồ ngay khi mở Home
+    refreshCharts();
+
+    return () => {
+      stopped = true;
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
+
   // =========================
   // GET SENSOR
   // =========================
@@ -323,25 +340,31 @@ useEffect(() => {
   // =========================
   // CHECK DEVICE STATUS
   // =========================
-const isDeviceOn = (device) => {
-  const status =
-    device.current_status ??
-    device.status ??
-    device.state ??
-    device.is_on ??
-    false;
 
-  if (typeof status === "string") {
-    const normalizedStatus = status.toUpperCase();
+  const isDeviceOn = (device) => {
+    const status =
+      device.current_status ??
+      device.status ??
+      device.state ??
+      device.is_on ??
+      false;
 
-    return (
-      normalizedStatus === "ON" ||
-      normalizedStatus === "ACTIVE"
-    );
-  }
+    if (typeof status === "string") {
+      const normalizedStatus = status.toUpperCase();
 
-  return Boolean(status);
-};
+      return (
+        normalizedStatus === "ON" ||
+        normalizedStatus === "ACTIVE"
+      );
+    }
+
+    return Boolean(status);
+  };
+
+  // STATE MỚI: Kiểm tra tất cả thiết bị đã bật hay chưa
+  const areAllDevicesOn =
+    devices.length > 0 &&
+    devices.every((device) => isDeviceOn(device));
 
   // =========================
   // DEVICE ICON
@@ -354,101 +377,164 @@ const isDeviceOn = (device) => {
   // =========================
   // CONTROL DEVICE
   // =========================
-const handleDeviceControl = async (device) => {
-  const deviceId =
-    device.device_id ??
-    device.id;
 
-  if (!deviceId) {
-    console.error(
-      "Không tìm thấy device ID:",
-      device
-    );
-    return;
-  }
+  const handleDeviceControl = async (device) => {
+    // Không điều khiển riêng khi đang gửi lệnh cho tất cả đèn
+    if (controllingAll) {
+      return;
+    }
 
-  // Kiểm tra trạng thái hiện tại
-  const currentStatus = isDeviceOn(device);
+    const deviceId =
+      device.device_id ??
+      device.id;
 
-  // Nếu đang ON → gửi OFF
-  // Nếu đang OFF → gửi ON
-  const action = currentStatus
-    ? "off"
-    : "on";
+    if (!deviceId) {
+      console.error(
+        "Không tìm thấy device ID:",
+        device
+      );
+      return;
+    }
 
-  try {
-    setControllingId(deviceId);
+    // Kiểm tra trạng thái hiện tại
+    const currentStatus = isDeviceOn(device);
 
-    // GỬI LỆNH ĐẾN BACKEND
-   
-
-    await controlDevice(
-      deviceId,
-      action
-    );
-
-    // CẬP NHẬT GIAO DIỆN NGAY
-    
-    setDevices((prevDevices) =>
-      prevDevices.map((item) => {
-        const itemId =
-          item.device_id ??
-          item.id;
-
-        if (
-          Number(itemId) !==
-          Number(deviceId)
-        ) {
-          return item;
-        }
-
-        return {
-          ...item,
-          current_status: action,
-        };
-      })
-    );
-
-    // ĐỢI BACKEND CẬP NHẬT
-   
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, 1000)
-    );
-
-    // LẤY LẠI TRẠNG THÁI THẬT
-  
+    // Nếu đang ON → gửi OFF
+    // Nếu đang OFF → gửi ON
+    const action = currentStatus
+      ? "off"
+      : "on";
 
     try {
-      const response =
-        await getDevices();
+      setControllingId(deviceId);
 
-      setDevices(
-        response.data || []
+      // GỬI LỆNH ĐẾN BACKEND
+      await controlDevice(
+        deviceId,
+        action
       );
+
+      // CẬP NHẬT GIAO DIỆN NGAY
+      setDevices((prevDevices) =>
+        prevDevices.map((item) => {
+          const itemId =
+            item.device_id ??
+            item.id;
+
+          if (
+            Number(itemId) !==
+            Number(deviceId)
+          ) {
+            return item;
+          }
+
+          return {
+            ...item,
+            current_status: action,
+          };
+        })
+      );
+
+      // ĐỢI BACKEND CẬP NHẬT
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000)
+      );
+
+      // LẤY LẠI TRẠNG THÁI THẬT
+      try {
+        const response =
+          await getDevices();
+
+        setDevices(
+          response.data || []
+        );
+
+      } catch (error) {
+        console.error(
+          "Lỗi cập nhật thiết bị:",
+          error
+        );
+      }
 
     } catch (error) {
       console.error(
-        "Lỗi cập nhật thiết bị:",
+        "Lỗi điều khiển thiết bị:",
         error
       );
+
+      alert(error.message);
+
+    } finally {
+      setControllingId(null);
+    }
+  };
+
+  // =========================
+  // CONTROL ALL DEVICES
+  // =========================
+
+  // HÀM MỚI: Bật hoặc tắt đồng thời cả 3 đèn
+  const handleAllDeviceControl = async () => {
+    // Không gửi thêm lệnh nếu đang có thao tác điều khiển
+    if (controllingAll || controllingId !== null) {
+      return;
     }
 
-  } catch (error) {
+    if (devices.length === 0) {
+      alert("Không có thiết bị để điều khiển");
+      return;
+    }
 
-    console.error(
-      "Lỗi điều khiển thiết bị:",
-      error
-    );
+    // Nếu cả 3 đèn đang bật thì tắt tất cả.
+    // Nếu chưa bật hết thì bật tất cả.
+    const action = areAllDevicesOn ? "off" : "on";
 
-    alert(error.message);
+    try {
+      setControllingAll(true);
 
-  } finally {
+      // Gửi một request duy nhất để điều khiển cả 3 đèn
+      await controlAllDevices(action);
 
-    setControllingId(null);
+      // Cập nhật giao diện ngay sau khi Backend nhận lệnh
+      setDevices((prevDevices) =>
+        prevDevices.map((device) => ({
+          ...device,
+          current_status: action,
+        }))
+      );
 
-  }
-};
+      // Chờ ESP8266 xử lý lệnh rồi lấy lại trạng thái từ Backend
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000)
+      );
+
+      const response = await getDevices();
+
+      setDevices(response.data || []);
+
+    } catch (error) {
+      console.error(
+        "Lỗi điều khiển tất cả thiết bị:",
+        error
+      );
+
+      alert(error.message);
+
+      // Nếu gửi lệnh thất bại, tải lại trạng thái thực tế
+      try {
+        const response = await getDevices();
+        setDevices(response.data || []);
+      } catch (reloadError) {
+        console.error(
+          "Không thể tải lại trạng thái thiết bị:",
+          reloadError
+        );
+      }
+
+    } finally {
+      setControllingAll(false);
+    }
+  };
 
   // =========================
   // ACTIVE DEVICE COUNT
@@ -456,8 +542,6 @@ const handleDeviceControl = async (device) => {
 
   const activeDevicesCount =
     devices.filter(isDeviceOn).length;
-
-
 
   // =========================
   // UI
@@ -475,13 +559,10 @@ const handleDeviceControl = async (device) => {
         {/* TITLE */}
 
         <div className="dashboard-title">
-
           <p>
             THÔNG TIN CÁC CẢM BIẾN
           </p>
-
         </div>
-
 
         {/* =========================
             SENSOR CARDS
@@ -489,104 +570,73 @@ const handleDeviceControl = async (device) => {
 
         <section className="sensor-cards">
 
-
           {/* TEMPERATURE */}
 
           <div className="sensor-card">
-
             <div className="sensor-card-top">
-
               <div className="sensor-icon temperature">
-
                 <Thermometer size={22} />
-
               </div>
 
               <span className="sensor-label">
                 NHIỆT ĐỘ
               </span>
-
             </div>
 
-
             <div className="sensor-value">
-
               {temperature?.value ?? "--"}
 
               <span>
                 {temperature?.unit ?? "°C"}
               </span>
-
             </div>
-
           </div>
-
 
           {/* LIGHT */}
 
           <div className="sensor-card">
-
             <div className="sensor-card-top">
-
               <div className="sensor-icon light">
-
                 <Sun size={22} />
-
               </div>
 
               <span className="sensor-label">
                 ÁNH SÁNG
               </span>
-
             </div>
 
-
             <div className="sensor-value">
-
               {light?.value ?? "--"}
 
               <span>
                 {light?.unit ?? "lux"}
               </span>
-
             </div>
-
           </div>
-
 
           {/* HUMIDITY */}
 
           <div className="sensor-card">
-
             <div className="sensor-card-top">
-
               <div className="sensor-icon humidity">
-
                 <Droplets size={22} />
-
               </div>
 
               <span className="sensor-label">
                 ĐỘ ẨM
               </span>
-
             </div>
 
-
             <div className="sensor-value">
-
               {humidity?.value ?? "--"}
 
               <span>
                 {humidity?.unit ?? "%"}
               </span>
-
             </div>
-
           </div>
 
         </section>
-
 
         {/* =========================
             CHART + DEVICE
@@ -594,29 +644,24 @@ const handleDeviceControl = async (device) => {
 
         <section className="dashboard-grid">
 
-
           {/* =========================
               CHARTS
           ========================= */}
 
           <div className="chart-section">
 
-            {/* =========================
-                TEMPERATURE + HUMIDITY
-            ========================= */}
+            {/* TEMPERATURE + HUMIDITY */}
 
             <div className="chart-card">
 
               <div className="chart-header">
 
                 <div className="chart-title">
-
                   <Thermometer size={18} />
 
                   <span>
                     BIỂU ĐỒ NHIỆT ĐỘ & ĐỘ ẨM
                   </span>
-
                 </div>
 
                 <span className="chart-unit">
@@ -694,23 +739,18 @@ const handleDeviceControl = async (device) => {
 
             </div>
 
-
-            {/* =========================
-                LIGHT
-            ========================= */}
+            {/* LIGHT */}
 
             <div className="chart-card">
 
               <div className="chart-header">
 
                 <div className="chart-title">
-
                   <Sun size={18} />
 
                   <span>
                     BIỂU ĐỒ ÁNH SÁNG
                   </span>
-
                 </div>
 
                 <span className="chart-unit">
@@ -785,17 +825,13 @@ const handleDeviceControl = async (device) => {
 
             <div className="device-card">
 
-
               {/* DEVICE HEADER */}
 
               <div className="device-card-header">
-
                 <h2>
                   ĐIỀU KHIỂN THIẾT BỊ
                 </h2>
-
               </div>
-
 
               {/* DEVICES */}
 
@@ -813,8 +849,85 @@ const handleDeviceControl = async (device) => {
 
               ) : (
 
-                devices.map(
-                  (device, index) => {
+                <>
+                  {/* =====================================
+                      NÚT MỚI: ĐIỀU KHIỂN TẤT CẢ 3 ĐÈN
+                      Dùng lại class CSS của công tắc cũ
+                      để giữ giao diện thống nhất.
+                  ====================================== */}
+
+                  <div className="device-item">
+
+                    <div className="device-info">
+
+                      <div
+                        className={`device-icon ${
+                          areAllDevicesOn ? "on" : ""
+                        }`}
+                      >
+                        <Lightbulb size={21} />
+                      </div>
+
+                      <div>
+
+                        <h3>
+                          Tất cả
+                        </h3>
+
+                        <span
+                          className={`device-status ${
+                            areAllDevicesOn ? "on" : ""
+                          }`}
+                        >
+                          {controllingAll
+                            ? "Đang xử lý..."
+                            : areAllDevicesOn
+                              ? "Cả 3 đèn đang bật"
+                              : "Bật / tắt cả 3 đèn"}
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    {/* Công tắc điều khiển tất cả */}
+                    <button
+                      className={`toggle-button ${
+                        areAllDevicesOn ? "on" : ""
+                      }`}
+                      onClick={handleAllDeviceControl}
+                      disabled={
+                        controllingAll ||
+                        controllingId !== null
+                      }
+                      title={
+                        areAllDevicesOn
+                          ? "Tắt tất cả đèn"
+                          : "Bật tất cả đèn"
+                      }
+                    >
+
+                      <span className="toggle-circle">
+
+                        {controllingAll && (
+                          <Power
+                            size={12}
+                            color="#999"
+                          />
+                        )}
+
+                      </span>
+
+                    </button>
+
+                  </div>
+
+                  {/* =====================================
+                      CÁC THIẾT BỊ RIÊNG LẺ
+                      Giữ nguyên chức năng bật/tắt từng đèn.
+                  ====================================== */}
+
+                  {devices.map((device, index) => {
 
                     const deviceId =
                       device.device_id ??
@@ -828,7 +941,6 @@ const handleDeviceControl = async (device) => {
 
                     const isOn =
                       isDeviceOn(device);
-
 
                     return (
                       <div
@@ -850,7 +962,6 @@ const handleDeviceControl = async (device) => {
 
                           </div>
 
-
                           <div>
 
                             <h3>
@@ -862,17 +973,14 @@ const handleDeviceControl = async (device) => {
                                 isOn ? "on" : ""
                               }`}
                             >
-
                               {isOn
                                 ? "Đang hoạt động"
                                 : "Tắt"}
-
                             </span>
 
                           </div>
 
                         </div>
-
 
                         {/* TOGGLE */}
 
@@ -881,20 +989,17 @@ const handleDeviceControl = async (device) => {
                             isOn ? "on" : ""
                           }`}
                           onClick={() =>
-                            handleDeviceControl(
-                              device
-                            )
+                            handleDeviceControl(device)
                           }
                           disabled={
-                            controllingId ===
-                            deviceId
+                            controllingAll ||
+                            controllingId === deviceId
                           }
                         >
 
                           <span className="toggle-circle">
 
-                            {controllingId ===
-                              deviceId && (
+                            {controllingId === deviceId && (
                               <Power
                                 size={12}
                                 color="#999"
@@ -907,11 +1012,11 @@ const handleDeviceControl = async (device) => {
 
                       </div>
                     );
-                  }
-                )
+                  })}
+
+                </>
 
               )}
-
 
               {/* =========================
                   DEVICE SUMMARY
@@ -934,7 +1039,6 @@ const handleDeviceControl = async (device) => {
                     {" thiết bị đang hoạt động"}
 
                   </p>
-
 
                   <div className="progress-bar-group">
 
